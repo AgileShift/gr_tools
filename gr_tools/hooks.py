@@ -3,7 +3,7 @@ app_title = "Grupo Real Tools"
 app_publisher = "Agile Shift"
 app_description = "Custom ERPNext configurations, tweaks and Tools"
 app_email = "contacto@gruporeal.org"
-app_license = "mit"
+app_license = "agpl-3.0"
 # required_apps = []
 
 # Includes in <head>
@@ -227,3 +227,10 @@ app_license = "mit"
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
+fixtures = [
+	#'Issue Type',
+	#{'dt': 'Workspace', 'filters': {'name': 'Support'}}
+	{'dt': 'System Settings'}
+]
+
+export_python_type_annotations = True

@@ -1,0 +1,32 @@
+Sales Invoice,Factura de Venta
+Sales Order,Orden de Venta
+
+Purchase Order,Orden de Compra
+Purchase Invoice,Factura de Compra
+
+Deliveries,Entrega
+
+List View,Vista de Lista
+Add a Filter,Agregar un Filtro
+Clear Filters,Borrar Filtros
+Apply Filters,Aplicar Filtros
+
+Connections,Conexiones
+Print,Imprimir
+
+You created this,Usted creó esto
+{0} created this,{0} creó esto
+You last edited this,Usted editó esto por última vez
+{0} last edited this,{0} editó esto por última vez
+You changed the value of {0},Usted cambió el valor de {0}
+{0} changed the value of {1},{0} cambió el valor de {1}
+You changed the values for {0},Usted cambió los valores de {0}
+{0} changed the values for {1},{0} cambió los valores de {1}
+{0} from {1} to {2},{0} de {1} a {2}
+{0} from {1} to {2} in row #{3},{0} de {1} a {2} en la fila #{3}
+removed rows for {0},eliminó filas para {0}
+added rows for {0},agregó filas para {0}
+
+Type a reply / comment,Escriba una respuesta / comentario
+
+Target Warehouse,Almacén de Destino

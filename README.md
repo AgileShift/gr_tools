@@ -1,7 +1,3 @@
 ## Grupo Real Tools
 
-Custom ERPNext configurations, tweaks and Tools
-
-#### License
-
-mit
+Custom configurations, tweaks and Tools for ERPNext and Frappe Framework.
