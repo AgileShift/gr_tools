@@ -227,10 +227,13 @@ app_license = "agpl-3.0"
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
+after_migrate = 'gr_tools.grupo_real_tools.sync.after_migrate'
+
 fixtures = [
 	#'Issue Type',
 	#{'dt': 'Workspace', 'filters': {'name': 'Support'}}
-	{'dt': 'System Settings'}
+	{'dt': 'System Settings'},
+	{'dt': 'Website Settings'}
 ]
 
 export_python_type_annotations = True

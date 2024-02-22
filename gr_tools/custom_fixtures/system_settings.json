@@ -1,0 +1,69 @@
+{
+  "global": {
+    "country": "Nicaragua",
+    "language": "es-NI",
+    "time_zone": "America/Managua",
+    "enable_onboarding": 1,
+    "disable_document_sharing": 1,
+    "date_format": "dd/mm/yyyy",
+    "time_format": "HH:mm",
+    "number_format": "#,###.##",
+    "first_day_of_the_week": "Monday",
+    "float_precision": "2",
+    "currency_precision": "2",
+    "apply_strict_user_permissions": 0,
+    "allow_older_web_view_links": 0,
+    "session_expiry": "05:00",
+    "document_share_key_expiry": 3,
+    "deny_multiple_sessions": 1,
+    "disable_user_pass_login": 0,
+    "allow_login_using_mobile_number": 0,
+    "allow_login_using_user_name": 0,
+    "login_with_email_link": 0,
+    "allow_consecutive_login_attempts": 4,
+    "allow_login_after_fail": 180,
+    "enable_two_factor_auth": 0,
+    "logout_on_password_reset": 1,
+    "force_user_to_reset_password": 0,
+    "reset_password_link_expiry_duration": "900",
+    "password_reset_limit": 2,
+    "enable_password_policy": 1,
+    "minimum_password_score": "4",
+    "email_retry_limit": 3,
+    "disable_standard_email_footer": 0,
+    "hide_footer_in_auto_email_reports": 0,
+    "attach_view_link": 1,
+    "welcome_email_template": null,
+    "reset_password_template": null,
+    "max_file_size": 7,
+    "allow_guests_to_upload_files": 0,
+    "force_web_capture_mode_for_uploads": 0,
+    "strip_exif_metadata_from_uploaded_images": 1,
+    "allowed_file_extensions": null,
+    "disable_system_update_notification": 1,
+    "disable_change_log_notification": 1,
+    "backup_limit": 2,
+    "encrypt_backup": 0,
+    "max_auto_email_report_per_user": 5,
+    "dormant_days": 4,
+    "allow_error_traceback": 1,
+    "enable_telemetry": 0,
+    "link_field_results_limit": 15
+  },
+  "erp.gruporeal.org": {
+    "email_footer_address": "Grupo Real, S.A.",
+    "disable_system_update_notification": 0,
+    "disable_change_log_notification": 0
+  },
+  "erp.fortechni.com": {
+    "email_footer_address": "ForTech Nicaragua",
+    "float_precision": "4",
+    "currency_precision": "4"
+  },
+  "erp.quickboxni.com": {
+    "email_footer_address": "QuickBox Nicaragua"
+  },
+  "erp.clothingcenterni.com": {
+    "email_footer_address": "Clothing Center Nicaragua"
+  }
+}

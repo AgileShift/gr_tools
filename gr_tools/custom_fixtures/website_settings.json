@@ -1,0 +1,75 @@
+{
+  "global": {
+    "home_page": "login",
+    "title_prefix": null,
+    "disable_signup": 1,
+    "show_footer_on_login": 0,
+    "website_theme": "Standard",
+
+    "top_bar_items": [],
+    "hide_login": 1,
+    "navbar_search": 0,
+    "show_language_picker": 0,
+    "navbar_template": "Standard Navbar",
+    "call_to_action": null,
+    "call_to_action_url": null,
+    "banner_html": null,
+
+    "footer_items": [],
+    "footer_logo": null,
+    "hide_footer_signup": 1,
+    "address": null,
+    "footer_powered": "Powered By Agile Shift.",
+    "footer_template": "Standard Footer",
+
+    "enable_view_tracking": 0,
+    "enable_google_indexing": 0,
+    "google_analytics_id": null,
+    "google_analytics_anonymize_ip": 1,
+
+    "auto_account_deletion": 72,
+    "show_account_deletion_link": 0,
+
+    "head_html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no\">\n\n<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\">\n<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">",
+    "robots_txt": "User-agent: *\nDisallow: /",
+
+    "route_redirects": []
+  },
+
+  "erp.gruporeal.org": {
+    "app_name": "Grupo Real, S.A.",
+    "app_logo": null,
+    "banner_image": null,
+    "splash_image": null,
+    "favicon": null,
+    "copyright": "2017-2024, Grupo Real, S.A."
+  },
+  "erp.fortechni.com": {
+    "app_name": "ForTech",
+    "app_logo": null,
+    "banner_image": null,
+    "splash_image": null,
+    "brand_html": null,
+    "favicon": null,
+    "copyright": "2015-2024, ForTech Nicaragua"
+  },
+  "erp.quickboxni.com": {
+    "app_name": "QuickBox",
+    "app_logo": null,
+    "banner_image": null,
+    "splash_image": null,
+    "brand_html": null,
+    "favicon": null,
+    "copyright": "2018-2024, QuickBox Nicaragua"
+  },
+  "erp.clothingcenterni.com": {
+    "app_name": "Clothing Center",
+    "app_logo": null,
+    "banner_image": null,
+    "splash_image": null,
+    "brand_html": null,
+    "favicon": null,
+    "copyright": "2019-2024, Clothing Center Nicaragua"
+  }
+}
+
