@@ -1,35 +1,30 @@
+from charset_normalizer.cli import query_yes_no
+
 import frappe
 from erpnext.utilities.product import get_price
+from frappe.desk.treeview import get_all_nodes
 
 
-@frappe.whitelist(allow_guest=True)
-def get_products(item_code: str = None, category: str = None, start: int = 0, limit: int = 15):
+def _get_ecommerce_settings():
+	# TODO: Show BackOrder Products?(For future sales or pre-orders)
+	return {
+		'company': frappe.get_cached_value('Global Defaults', 'Global Defaults', 'default_company'),
+		'price_list': frappe.get_cached_value('Selling Settings', 'Selling Settings', 'selling_price_list'),
+		'warehouse': frappe.get_cached_value('Stock Settings', 'Stock Settings', 'default_warehouse')
+	}
+
+
+def _build_base_query():
 	"""
-	Get a list of available products or a specific product by item_code. Includes filtering by category and its descendants.
-
-	Parameters:
-		item_code (str): If provided, fetches only the specific product.
-		category (str): If provided, fetches products from the specific category and its child categories.
-		start (int): Pagination start index.
-		limit (int): Number of products to fetch.
-
-	Returns:
-		List of products or a single product.
-	"""
-
-	# TODO: Set a Default Warehouse, Maybe for each item?
-	# FIXME: Dont Show Reserved Stock!
-	# FIXME: Show BackOrder Products(For future sales or pre-orders)
-	company = frappe.get_cached_value("Global Defaults", "Global Defaults", "default_company")
-	price_list = frappe.get_cached_value('Selling Settings', 'Selling Settings', 'selling_price_list')
-	default_warehouse = frappe.get_cached_value('Stock Settings', 'Stock Settings', 'default_warehouse')
-
-	# Query for Available Items. FIXME: projected_qty = actual_qty - reserved_qty | Test: Planned | Requested | Ordered
+	Query for Available Items. FIXME: projected_qty = actual_qty - reserved_qty | Test: Planned | Requested | Ordered
 	# actual_qty = All Items at Warehouse
 	# reserved_qty = Sum of Items in Sales Orders(Not Draft) and Stock Reservation
 	# projected_qty = actual_qty - reserved_qty
-	# reserved_stock = Sum of Items in Stock Reservation
-	query = """
+	# reserved_stock = Sum of Items in Stock Reservation | # FIXME: Dont Show POS Reserved Stock! is like a Virtual Field
+
+	# TODO: Query the Warehouse where its available + quantity -> Get all warehouse available(marked) for ecommerce sales
+	"""
+	return """
 		SELECT
 			item.item_name,
 			item.image,
@@ -38,32 +33,11 @@ def get_products(item_code: str = None, category: str = None, start: int = 0, li
 			(bin.actual_qty - bin.reserved_stock) as actual_qty
 		FROM `tabBin` AS bin
 		JOIN `tabItem` AS item ON item.item_code = bin.item_code
-		WHERE (bin.actual_qty - bin.reserved_stock) > 0 AND bin.warehouse = '{warehouse}'
-	""".format(warehouse=default_warehouse)
-
-	if item_code:  # Filter by Item Code
-		query += " AND item.item_code = %(item_code)s LIMIT 1"
-		items = frappe.db.sql(query, {'item_code': item_code}, as_dict=True)
-	else:  # Filter by category and its descendants
-		if category:
-			if categories := get_descendant_categories(category):
-				query += " AND item.item_group IN %(categories)s"
-			else:
-				return []  # Bad Item Group
-
-		# Add Pagination
-		items = frappe.db.sql(query + " ORDER BY item.creation DESC LIMIT %(start)s, %(limit)s;", {
-			"start": start, "limit": limit,
-			"categories": categories if category else None
-		}, as_dict=True)
-
-	for item in items:
-		item.price = get_price(item.item_code, price_list=price_list, customer_group='', company=company)
-
-	return items
+		WHERE (bin.actual_qty - bin.reserved_stock) > 0 AND bin.warehouse = %(warehouse)s
+	"""
 
 
-def get_descendant_categories(parent_category: str) -> list[str]:
+def _get_descendant_categories(parent_category: str) -> list[str]:
 	# Get all descendant categories
 	descendant_groups = frappe.db.sql("""
 		WITH RECURSIVE category_tree AS (
@@ -79,35 +53,79 @@ def get_descendant_categories(parent_category: str) -> list[str]:
 
 
 @frappe.whitelist(allow_guest=True)
-def get_categories():
-	# FIXME: UNUSED!
-	data = frappe.db.get_all(
-		'Item Group',
-		fields=['name', 'is_group as isLeaf', 'parent_item_group', 'idx as counter'],
-		filters={'show_in_website': 1}, order_by='is_group DESC'
-	)
+def get_product(item_code: str):
+	"""
+	Get a single product by item_code.
 
-	# FIXME: What for? -> frappe.log_error(title="Debug: Data without Filters", message=data)
+	Parameters:
+		item_code (str): Fetches only the specific product.
 
-	# Diccionario para almacenar nodos y sus hijos
-	nodes = {}
-	tree = []
+	Returns:
+		Single product.
+	"""
+	settings = _get_ecommerce_settings()
+	query = _build_base_query() + " AND item.item_code = %(item_code)s LIMIT 1"
 
-	# Crear nodos y asociarlos a sus padres
-	for item in data:
-		nodes[item['name']] = {"key": item['name'].upper().replace(" ", "_"),
-			"value": {"label": item['name'], "counter": item['counter']}, "isLeaf": not item['isLeaf'],
-			# `is_group` indica si no es hoja
-			"children": []}
+	if not (item := frappe.db.sql(query, {'item_code': item_code, 'warehouse': settings['warehouse']}, as_dict=True)):
+		return []
 
-	# Asignar relaciones jerárquicas
-	for item in data:
-		node = nodes[item['name']]
-		parent_name = item['parent_item_group']
-		if parent_name and parent_name in nodes:
-			nodes[parent_name]['children'].append(node)
+	item = item[0]
+	item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company'])
+
+	return item
+
+
+@frappe.whitelist(allow_guest=True)
+def get_products(sale: bool = False, category: str = None, start: int = 0, limit: int = 15):
+	"""
+	Get a list of available products or a specific product by item_code. Includes filtering by category and its descendants.
+
+	Parameters:
+		discounted (bool): Fetches only products with discounts.
+		category (str): Fetches products from the specific category and its child categories.
+		start (int): Pagination start index.
+		limit (int): Number of products to fetch.
+
+	Returns:
+		List of products or a single product.
+	"""
+	settings = _get_ecommerce_settings()
+
+	query = _build_base_query()
+
+	if sale:
+		# TODO: Validate the valid_from and valid_upto dates. Nevertheless, the query should work with the disable filter.
+		items_on_sale = frappe.db.sql("""
+			SELECT
+				pri.item_code
+			FROM `tabPricing Rule Item Code` pri
+			JOIN `tabPricing Rule` pr ON pr.name = pri.parent
+			WHERE
+				pr.disable = 0 and pr.apply_on = 'Item Code'
+			AND
+				(pr.valid_from <= CURDATE() AND pr.valid_upto >= CURDATE()) -- TODO: Check if valid_from is null
+		""", as_dict=True, pluck='name')
+		query += " AND item.item_code IN %(items_on_sale)s"
+	elif category:  # Filter by category and its descendants
+		if categories := _get_descendant_categories(category):
+			query += " AND item.item_group IN %(categories)s"
 		else:
-			# Nodo raíz
-			tree.append(node)
+			return []  # Bad Item Group
 
-	return tree
+	# Add Pagination
+	items = frappe.db.sql(query + " ORDER BY item.creation DESC LIMIT %(start)s, %(limit)s;", {
+		"start": start, "limit": limit, "warehouse": settings['warehouse'],
+		"categories": categories if category else None,
+		"items_on_sale": items_on_sale if sale else None
+	}, as_dict=True)
+
+	for item in items:
+		item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company'])
+
+	return items
+
+
+@frappe.whitelist(allow_guest=True)
+def get_categories(parent: str = 'All Item Groups'):
+	# TODO: Add show_in_website Filter
+	return get_all_nodes("Item Group", '', parent, "frappe.desk.treeview.get_children", show_in_website=True)
