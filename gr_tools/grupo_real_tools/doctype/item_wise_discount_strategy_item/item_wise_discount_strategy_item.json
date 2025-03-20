@@ -92,7 +92,6 @@
    "read_only": 1
   },
   {
-   "bold": 1,
    "columns": 1,
    "description": "Price List Rate",
    "fieldname": "selling_rate",
@@ -107,7 +106,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-03-20 09:18:56.265392",
+ "modified": "2025-03-20 09:55:19.250408",
  "modified_by": "Administrator",
  "module": "Grupo Real Tools",
  "name": "Item-wise Discount Strategy Item",
