@@ -1,17 +1,19 @@
 frappe.ui.form.on("Item-wise Discount Strategy", {
-	refresh(frm) {
+	onload_post_render(frm) {
+		frm.fields_dict['items'].grid.set_multiple_add('item_code');
+	},
 
-		let rows = document.getElementsByClassName("grid-row");
+	refresh(frm) {
+		let grid_rows = frm.fields_dict['items'].grid.form_grid.find('.grid-body .grid-row'); // Find only Body Rows
 
 		frm.doc.items.forEach((item, i) => {
+			let row = $(grid_rows[i]);
 			let color = item.gross_profit_margin > 0 ? 'green' : 'red';
-			let row = $(rows[i + 1]);
 
 			row.find("[data-fieldname='gross_profit_margin']")[0].style.color = color;
 			row.find("[data-fieldname='gross_profit']")[0].style.color = color;
 
 		});
-
 	}
 });
 
