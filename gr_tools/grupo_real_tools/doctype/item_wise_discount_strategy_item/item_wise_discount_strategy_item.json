@@ -1,0 +1,119 @@
+{
+ "actions": [],
+ "creation": "2025-03-17 13:09:08.338768",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "item_name",
+  "actual_qty",
+  "valuation_rate",
+  "selling_rate",
+  "discount_price",
+  "discount_margin",
+  "gross_profit_margin",
+  "gross_profit"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "columns": 1,
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "link_filters": "[[\"Item\",\"has_variants\",\"=\",0]]",
+   "options": "Item",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "columns": 2,
+   "fetch_from": "item_code.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Item Name"
+  },
+  {
+   "bold": 1,
+   "columns": 1,
+   "fieldname": "valuation_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Valuation Rate",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "actual_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Actual Qty",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "default": "0.00",
+   "fieldname": "discount_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Precio Final",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "gross_profit_margin",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Gross Profit %",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "discount_margin",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Discount Percentage",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "gross_profit",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Gross Profit",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "columns": 1,
+   "description": "Price List Rate",
+   "fieldname": "selling_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Selling Rate",
+   "non_negative": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 100,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-03-19 18:15:35.594612",
+ "modified_by": "Administrator",
+ "module": "Grupo Real Tools",
+ "name": "Item-wise Discount Strategy Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

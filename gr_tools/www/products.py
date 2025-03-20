@@ -1,5 +1,3 @@
-from charset_normalizer.cli import query_yes_no
-
 import frappe
 from erpnext.utilities.product import get_price
 from frappe.desk.treeview import get_all_nodes

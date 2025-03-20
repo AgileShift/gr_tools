@@ -28,7 +28,7 @@ def apply_settings(doctype, data):
 	if site_settings := data.get(frappe.local.site):
 		global_settings.update(site_settings)
 
-	doc = frappe.get_doc(doctype)  # Works For Single Doctypes
+	doc = frappe.get_doc(doctype)  # Works For Single Doctype
 
 	for key, value in global_settings.items():
 		setattr(doc, key, value)
