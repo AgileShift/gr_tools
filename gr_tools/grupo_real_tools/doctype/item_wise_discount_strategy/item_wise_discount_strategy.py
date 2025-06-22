@@ -41,6 +41,14 @@ class ItemwiseDiscountStrategy(Document):
 
 	def before_save(self):
 		# Calculate Item Details and Margins
-		for item in self.items:
+
+		total_items = len(self.items)
+		for i, item in enumerate(self.items):
+			frappe.publish_progress(
+				percent=(i + 1) / total_items * 100,
+				title='Calculando valores de descuentos',
+				description=f'Calculando valores para el artículo: {item.item_code}'
+			)
+
 			item.update(self.get_item_details(item.idx, item.item_code))  # Get Item Stock Values and Selling Price Rate
 			item.update(self.calculate_item_values(item))  # Calculate Discount Fields
