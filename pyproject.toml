@@ -4,7 +4,7 @@ authors = [
     { name = "Agile Shift", email = "contacto@gruporeal.org"}
 ]
 description = "Custom configurations, tweaks and Tools for ERPNext and Frappe"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<3.14"
 readme = "README.md"
 dynamic = ["version"]
 
@@ -16,5 +16,14 @@ build-backend = "flit_core.buildapi"
 
 [tool.bench.dev-dependencies]
 
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
 [tool.ruff.lint]
 typing-modules = ["frappe.types.DF"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = true

@@ -4,21 +4,21 @@ frappe.ui.form.on("Item-wise Discount Strategy", {
 	},
 
 	refresh(frm) {
-		let grid_rows = frm.fields_dict['items'].grid.form_grid.find('.grid-body .grid-row'); // Find only Body Rows
+		// TODO: Make this refresh on field change!
+		let grid = frm.fields_dict['items'].grid;
+		let grid_rows = grid.form_grid.find('.grid-body .grid-row'); // Find only Displayed body Rows
 
-		frm.doc.items.forEach((item, i) => {
-			let row = $(grid_rows[i]);
-			let color = item.gross_profit_margin > 0 ? 'green' : 'red';
+		grid_rows.each((i, row) => {
+			let item = grid.grid_rows_by_docname[row.getAttribute('data-name')].doc;
+			let color = item.gross_profit_margin > 0 ? 'green' : 'red';  // TODO: Add 0.00
 
-			row.find("[data-fieldname='gross_profit_margin']")[0].style.color = color;
-			row.find("[data-fieldname='gross_profit']")[0].style.color = color;
-
+			row.querySelector("[data-fieldname='gross_profit_margin']").style.color = color;
+			row.querySelector("[data-fieldname='gross_profit']").style.color = color;
 		});
 	}
 });
 
 frappe.ui.form.on("Item-wise Discount Strategy Item", {
-	// TODO: Make this work on the Frontend
 	item_code(frm, cdt, cdn) {
 		let item = locals[cdt][cdn];
 
@@ -26,40 +26,26 @@ frappe.ui.form.on("Item-wise Discount Strategy Item", {
 			return;
 		}
 
-		frappe.db.get_value(
-			'Bin',
-			{item_code: item.item_code, warehouse: frm.doc.warehouse},
-			['actual_qty', 'valuation_rate'],
-			(values) => {
-
-				if (!values.actual_qty) {
-					frappe.msgprint(`Fila ${item.idx}: No se encontró stock para el artículo <bold>${item.item_code}</bold> en el almacén: ${frm.doc.warehouse}`);
-					return;
-				}
-
-				item.actual_qty = values.actual_qty;
-				item.valuation_rate = values.valuation_rate;
-
-				frappe.db.get_value('Item Price', {
-					item_code: item.item_code, price_list: frm.doc.price_list
-				}, 'price_list_rate', (value) => {
-					item.selling_rate = value.price_list_rate;
-
-					frm.refresh_field('items');
-				});
-
-			}
-		);
+		frappe.call({
+			method: 'get_item_details',
+			doc: cur_frm.doc,
+			args: {
+				idx: item.idx,
+				item_code: item.item_code
+			},
+			callback: (r) => Object.assign(item, r.message),
+			error: (r) => item.item_code = ''
+		});
 	},
 
 	discount_price(frm, cdt, cdn) {
 		let item = locals[cdt][cdn];
 
-		// Auto-calculate discount price and margins
-		item.discount_margin = -((item.selling_rate - item.discount_price) / item.selling_rate) * 100
-		item.gross_profit_margin = ((item.discount_price - item.valuation_rate) / item.valuation_rate) * 100
-		item.gross_profit = item.discount_price - item.valuation_rate
-
-		frm.refresh_field('items');
+		frappe.call({
+			method: 'calculate_item_values',
+			doc: frm.doc,
+			args: {item},
+			callback: (r) => Object.assign(item, r.message)
+		});
 	}
 });
