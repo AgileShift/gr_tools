@@ -50,6 +50,15 @@ def _get_descendant_categories(parent_category: str) -> list[str]:
 	return descendant_groups
 
 
+def _calculated_discounted_rate_and_percent(item):
+	# When 'Formatted Discount Rate' is Set, other fields are empty so auto-calculated here!
+	item.price.mrp = float(item.price.formatted_mrp.replace('$', '').strip())
+	item.price.discount_rate = float(item.price.formatted_discount_rate.replace('$', '').strip())
+	item.price.discount_percent = round((item.price.discount_rate / item.price.mrp) * 100, 2)
+
+	return item
+
+
 @frappe.whitelist(allow_guest=True)
 def get_product(item_code: str):
 	"""
@@ -69,6 +78,9 @@ def get_product(item_code: str):
 
 	item = item[0]
 	item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company'])
+
+	if item.price.formatted_discount_rate:
+		_calculated_discounted_rate_and_percent(item)
 
 	return item
 
@@ -119,6 +131,9 @@ def get_products(sale: bool = False, category: str = None, start: int = 0, limit
 
 	for item in items:
 		item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company'])
+
+		if item.price.formatted_discount_rate:
+			_calculated_discounted_rate_and_percent(item)
 
 	return items
 

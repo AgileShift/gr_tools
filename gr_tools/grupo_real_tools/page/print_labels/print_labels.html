@@ -1,0 +1,44 @@
+<div class="table-responsive">
+		<table class="table table-bordered table-striped text-center">
+			<thead>
+			<tr class="text-center">
+				<th></th>
+				<th>Item Code</th>
+				<th>Description</th>
+				<th>Item Group</th>
+				<th>QTY</th>
+				<th>Regular Price</th>
+				<th>Discounted Price</th>
+				<th>Discount Margin</th>
+				<th></th>
+			</tr>
+			</thead>
+			<tbody>
+			{% for item in items %}
+			<tr>
+				<th><img width="90px" src="{{ item.image }}"></img></th>
+				<th class="text-left">{{ item.item_code }}</th>
+				<th class="text-left">{{ item.item_name }}</th>
+				<th>{{ item.item_group }}</th>
+				<th>{{ item.actual_qty }}</th>
+				<th>{{ item.price.formatted_mrp || item.price.formatted_price }}</th>
+				<th class="text-success">
+					{% if item.price.discount_percent %}
+					{{ item.price.formatted_price }}
+					{% endif %}
+				</th>
+				<th class="text-success">
+					{% if item.price.discount_percent %}
+					{{ item.price.discount_percent }}%
+					{% endif %}
+				</th>
+				<th>
+					<div>
+						<button id="{{item.item_code}}" class="raw-print btn btn-primary btn-sm">Print</button>
+					</div>
+				</th>
+			</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+	</div>

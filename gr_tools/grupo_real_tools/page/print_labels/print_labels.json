@@ -1,0 +1,26 @@
+{
+ "content": null,
+ "creation": "2025-06-23 09:08:58.889312",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-06-23 09:09:58.909415",
+ "modified_by": "Administrator",
+ "module": "Grupo Real Tools",
+ "name": "print-labels",
+ "owner": "Administrator",
+ "page_name": "print-labels",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Accounts Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Print Labels"
+}
