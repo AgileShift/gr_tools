@@ -1,6 +1,6 @@
 import frappe
 from erpnext.utilities.product import get_price
-from gr_tools.www.products import _get_ecommerce_settings
+from gr_tools.www.products import _get_ecommerce_settings, _calculated_discounted_rate_and_percent
 
 
 def _build_base_query():
@@ -34,6 +34,9 @@ def get_products(pricing_rule: str = None):
 
 		for item in items:
 			item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company'])
+
+			if item.price.formatted_discount_rate:
+				_calculated_discounted_rate_and_percent(item)
 
 		return items
 

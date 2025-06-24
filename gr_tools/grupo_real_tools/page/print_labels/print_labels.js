@@ -67,6 +67,7 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 				render_template({items: r.message});
 			});
 		} else {
+			// TODO: WORK in Progress
 			frappe.call({
 				debounce: 1000,
 				method: 'gr_tools.www.products.get_products',
