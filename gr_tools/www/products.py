@@ -123,7 +123,7 @@ def get_products(sale: bool = False, category: str = None, start: int = 0, limit
 			return []  # Bad Item Group
 
 	# Add Pagination
-	items = frappe.db.sql(query + " ORDER BY item.creation DESC LIMIT %(start)s, %(limit)s;", {
+	items = frappe.db.sql(query + " ORDER BY item.creation ASC LIMIT %(start)s, %(limit)s;", { # TODO: Add Sort By in Settings
 		"start": start, "limit": limit, "warehouse": settings['warehouse'],
 		"categories": categories if category else None,
 		"items_on_sale": items_on_sale if sale else None
@@ -140,5 +140,5 @@ def get_products(sale: bool = False, category: str = None, start: int = 0, limit
 
 @frappe.whitelist(allow_guest=True)
 def get_categories(parent: str = 'All Item Groups'):
-	# TODO: Add show_in_website Filter
+	# TODO: Add show_in_website Filter: UNUSED as per 24 Jun 2025
 	return get_all_nodes("Item Group", '', parent, "frappe.desk.treeview.get_children", show_in_website=True)
