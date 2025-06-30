@@ -123,7 +123,7 @@ def get_products(sale: bool = False, category: str = None, start: int = 0, limit
 			return []  # Bad Item Group
 
 	# Add Pagination
-	items = frappe.db.sql(query + " ORDER BY item.creation ASC LIMIT %(start)s, %(limit)s;", { # TODO: Add Sort By in Settings
+	items = frappe.db.sql(query + " ORDER BY item.creation LIMIT %(start)s, %(limit)s;", {  # TODO: Add Sort By in Settings
 		"start": start, "limit": limit, "warehouse": settings['warehouse'],
 		"categories": categories if category else None,
 		"items_on_sale": items_on_sale if sale else None
