@@ -86,13 +86,19 @@ def get_product(item_code: str):
 
 
 @frappe.whitelist(allow_guest=True)
-def get_products(sale: bool = False, category: str = None, start: int = 0, limit: int = 15):
+def get_products(
+	sale: bool = False, category: str = None,
+	size: str = None, color: str = None,
+	start: int = 0, limit: int = 15
+):
 	"""
 	Get a list of available products or a specific product by item_code. Includes filtering by category and its descendants.
 
 	Parameters:
-		discounted (bool): Fetches only products with discounts.
+		sale (bool): Fetches only products with discounts.
 		category (str): Fetches products from the specific category and its child categories.
+		size (str): Fetches products with a specific size.
+		color (str): Fetches products with a specific color.
 		start (int): Pagination start index.
 		limit (int): Number of products to fetch.
 
@@ -102,6 +108,28 @@ def get_products(sale: bool = False, category: str = None, start: int = 0, limit
 	settings = _get_ecommerce_settings()
 
 	query = _build_base_query()
+
+	if size:
+		query += """
+			AND EXISTS (
+				SELECT 1
+				FROM `tabItem Variant Attribute` iva_size
+				WHERE iva_size.parent = item.name
+					AND iva_size.attribute = 'Talla'
+					AND iva_size.attribute_value = %(size)s
+			)
+		"""
+
+	if color:
+		query += """
+			AND EXISTS (
+				SELECT 1
+				FROM `tabItem Variant Attribute` iva_color
+				WHERE iva_color.parent = item.name
+					AND iva_color.attribute = 'Color'
+					AND iva_color.attribute_value = %(color)s
+			)
+		"""
 
 	if sale:
 		# TODO: Validate the valid_from and valid_upto dates. Nevertheless, the query should work with the disable filter.
@@ -116,23 +144,25 @@ def get_products(sale: bool = False, category: str = None, start: int = 0, limit
 				(pr.valid_from <= CURDATE() AND pr.valid_upto >= CURDATE()) -- TODO: Check if valid_from is null
 		""", as_dict=True, pluck='name')
 		query += " AND item.item_code IN %(items_on_sale)s"
-	elif category:  # Filter by category and its descendants
+
+	if category:  # Filter by category and its descendants
 		if categories := _get_descendant_categories(category):
 			query += " AND item.item_group IN %(categories)s"
 		else:
 			return []  # Bad Item Group
 
 	# Add Pagination
-	items = frappe.db.sql(query + " ORDER BY item.creation LIMIT %(start)s, %(limit)s;", {  # TODO: Add Sort By in Settings
+	items = frappe.db.sql(query + " ORDER BY item.creation DESC LIMIT %(start)s, %(limit)s;", {  # TODO: Add Sort By in Settings
 		"start": start, "limit": limit, "warehouse": settings['warehouse'],
 		"categories": categories if category else None,
-		"items_on_sale": items_on_sale if sale else None
-	}, as_dict=True)
+		"items_on_sale": items_on_sale if sale else None,
+		"size": size, "color": color
+	}, as_dict=True, debug=True)
 
 	for item in items:
-		item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company'])
+		item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company']) or {}
 
-		if item.price.formatted_discount_rate:
+		if item.price.get('formatted_discount_rate'):
 			_calculated_discounted_rate_and_percent(item)
 
 	return items
