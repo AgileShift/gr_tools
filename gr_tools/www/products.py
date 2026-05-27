@@ -3,6 +3,14 @@ from erpnext.utilities.product import get_price
 from frappe.desk.treeview import get_all_nodes
 
 
+def _comma_separated_to_list(value: str | None) -> list[str]:
+	# FIXME UTIL: validate usage
+	if not value:
+		return []
+
+	return [item.strip() for item in value.split(",") if item.strip()]
+
+
 def _get_ecommerce_settings():
 	# TODO: Show BackOrder Products?(For future sales or pre-orders)
 	return {
@@ -35,18 +43,19 @@ def _build_base_query():
 	"""
 
 
-def _get_descendant_categories(parent_category: str) -> list[str]:
-	# Get all descendant categories
+def _get_descendant_categories(categories: list[str]) -> list[str]:
+	if not categories:
+		return []
+
 	descendant_groups = frappe.db.sql("""
 		WITH RECURSIVE category_tree AS (
-			SELECT name FROM `tabItem Group` WHERE name = %(category)s
+			SELECT name FROM `tabItem Group` WHERE name IN %(categories)s
 			UNION ALL
-			SELECT ig.name
-			FROM `tabItem Group` ig
-			INNER JOIN category_tree ct ON ig.parent_item_group = ct.name
+			SELECT child.name FROM `tabItem Group` child
+			INNER JOIN category_tree ON child.parent_item_group = category_tree.name
 		)
-		SELECT name FROM category_tree;
-		""", {"category": parent_category}, pluck='name')
+		SELECT DISTINCT name FROM category_tree;
+		""", {"categories": categories}, pluck='name')
 	return descendant_groups
 
 
@@ -108,6 +117,7 @@ def get_products(
 	settings = _get_ecommerce_settings()
 
 	query = _build_base_query()
+	params = {"start": start, "limit": limit, "warehouse": settings['warehouse']}
 
 	if size:
 		query += """
@@ -116,9 +126,10 @@ def get_products(
 				FROM `tabItem Variant Attribute` iva_size
 				WHERE iva_size.parent = item.name
 					AND iva_size.attribute = 'Talla'
-					AND iva_size.attribute_value = %(size)s
+					AND iva_size.attribute_value IN %(size)s
 			)
 		"""
+		params["size"] = _comma_separated_to_list(size)
 
 	if color:
 		query += """
@@ -127,9 +138,10 @@ def get_products(
 				FROM `tabItem Variant Attribute` iva_color
 				WHERE iva_color.parent = item.name
 					AND iva_color.attribute = 'Color'
-					AND iva_color.attribute_value = %(color)s
+					AND iva_color.attribute_value IN %(color)s
 			)
 		"""
+		params["color"] = _comma_separated_to_list(color)
 
 	if sale:
 		# TODO: Validate the valid_from and valid_upto dates. Nevertheless, the query should work with the disable filter.
@@ -143,21 +155,22 @@ def get_products(
 			AND
 				(pr.valid_from <= CURDATE() AND pr.valid_upto >= CURDATE()) -- TODO: Check if valid_from is null
 		""", as_dict=True, pluck='name')
-		query += " AND item.item_code IN %(items_on_sale)s"
 
-	if category:  # Filter by category and its descendants
-		if categories := _get_descendant_categories(category):
+		if not items_on_sale:
+			return []
+
+		query += " AND item.item_code IN %(items_on_sale)s"
+		params["items_on_sale"] = items_on_sale
+
+	if category:  # Filter by categories and their descendants
+		if categories := _get_descendant_categories(_comma_separated_to_list(category)):
 			query += " AND item.item_group IN %(categories)s"
+			params["categories"] = categories
 		else:
 			return []  # Bad Item Group
 
-	# Add Pagination
-	items = frappe.db.sql(query + " ORDER BY item.creation DESC LIMIT %(start)s, %(limit)s;", {  # TODO: Add Sort By in Settings
-		"start": start, "limit": limit, "warehouse": settings['warehouse'],
-		"categories": categories if category else None,
-		"items_on_sale": items_on_sale if sale else None,
-		"size": size, "color": color
-	}, as_dict=True, debug=True)
+	# Add Pagination # TODO: Add Sort By in Settings
+	items = frappe.db.sql(query + " ORDER BY item.creation DESC LIMIT %(start)s, %(limit)s;", params, as_dict=True)
 
 	for item in items:
 		item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company']) or {}
