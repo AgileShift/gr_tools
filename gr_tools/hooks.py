@@ -31,11 +31,11 @@ jinja = {
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
 # include js in page
-# page_js = {"page" : "public/js/file.js"}
+# page_js = {"page": "public/js/file.js"}
 
 # include js in doctype views
-# doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
-# doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
+# doctype_tree_js = {"doctype": "public/js/doctype_tree.js"}
+# doctype_calendar_js = {"doctype": "public/js/doctype_calendar.js"}
 
 doctype_js = {"Payment Entry": "public/js/doctype/payment_entry.js"}
 
@@ -235,7 +235,7 @@ doctype_list_js = {
 export_python_type_annotations = True
 
 # default_log_clearing_doctypes = {
-# 	"Logging DocType Name": 30  # days to retain logs
+# 	"Logging DocType Name": 30 # days to retain logs
 # }
 
 after_migrate = 'gr_tools.grupo_real_tools.sync.after_migrate'
