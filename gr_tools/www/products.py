@@ -204,3 +204,18 @@ def get_categories():
 			tree.append(node)
 
 	return tree
+
+
+@frappe.whitelist(allow_guest=True, methods=['GET'])
+def get_item_attribute_values(attribute: str):
+	rows = frappe.get_all(
+		"Item Attribute Value",
+		filters={
+			"parent": attribute,
+			"parenttype": "Item Attribute",
+		},
+		fields=["attribute_value as value", "abbr", "idx"],
+		order_by="idx asc",
+	)
+
+	return [{"value": row.value, "abbr": row.abbr} for row in rows]
