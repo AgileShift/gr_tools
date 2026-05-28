@@ -1,6 +1,5 @@
 import frappe
-from erpnext.utilities.product import get_price
-from gr_tools.www.products import _get_ecommerce_settings, _calculated_discounted_rate_and_percent
+from gr_tools.www.products import _get_item_price
 
 
 def _build_base_query():
@@ -19,24 +18,18 @@ def _build_base_query():
 
 @frappe.whitelist(allow_guest=False)
 def get_products(pricing_rule: str = None):
-	"""
-	Get a list of available products with optional price list filtering.
-	"""
-
-	settings = _get_ecommerce_settings()
+	""" Get a list of available products with optional price list filtering. """
+	warehouse = frappe.get_single_value('Stock Settings', 'default_warehouse')
 
 	if pricing_rule:
 		query = _build_base_query() + "WHERE bin.warehouse = %(warehouse)s AND bin.item_code IN %(items)s"
 
 		items = frappe.get_all("Pricing Rule Item Code", filters={"parent": pricing_rule}, fields=["item_code"], pluck='item_code')
 
-		items = frappe.db.sql(query, {'items': tuple(items), 'warehouse': settings['warehouse']}, as_dict=True)
+		items = frappe.db.sql(query, {'items': tuple(items), 'warehouse': warehouse}, as_dict=True)
 
 		for item in items:
-			item.price = get_price(item.item_code, price_list=settings['price_list'], customer_group='', company=settings['company'])
-
-			if item.price.formatted_discount_rate:
-				_calculated_discounted_rate_and_percent(item)
+			item.price = _get_item_price(item.item_code)
 
 		return items
 
