@@ -38,11 +38,16 @@ def _build_base_query():
 	"""
 	return """
 		SELECT
+			item.item_code,
 			item.item_name,
 			item.image,
 			item.item_group,
-			bin.item_code,
-			(bin.actual_qty - bin.reserved_stock) as actual_qty
+			(bin.actual_qty - bin.reserved_stock) as actual_qty,
+			COALESCE(
+				(SELECT JSON_OBJECTAGG(item_attr.attribute, item_attr.attribute_value)
+				FROM `tabItem Variant Attribute` AS item_attr
+				WHERE item_attr.parent = item.item_code), JSON_OBJECT()
+			) as attributes
 		FROM `tabBin` AS bin
 		JOIN `tabItem` AS item ON item.item_code = bin.item_code
 		WHERE (bin.actual_qty - bin.reserved_stock) > 0 AND bin.warehouse = %(warehouse)s
@@ -87,6 +92,8 @@ def get_product(item_code: str):
 		return []
 
 	item[0].price = _get_item_price(item[0].item_code)
+	item[0].attributes = frappe.parse_json(item[0].attributes)
+
 	return item[0]
 
 
@@ -167,6 +174,7 @@ def get_products(sale: bool = False, category: str = '', size: str = '', color: 
 
 	for item in items:
 		item.price = _get_item_price(item.item_code)
+		item.attributes = frappe.parse_json(item.attributes)
 
 	return items
 
