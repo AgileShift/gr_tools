@@ -209,7 +209,7 @@ def get_items_from_template(item_code: str):
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
-def get_items(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 15):
+def get_items(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 45):
 	"""
 	Get a list of available products or a specific product by item_code. Includes filtering by category and its descendants.
 
