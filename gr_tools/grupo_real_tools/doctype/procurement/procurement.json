@@ -1,0 +1,162 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-19 21:34:43.071058",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "supplier_invoice",
+  "supplier_invoice_date",
+  "column_break_ewif",
+  "tracking_number",
+  "transportation_method",
+  "column_break_otni",
+  "transporter_invoice_no",
+  "transporter_invoice_date",
+  "section_break_rnzz",
+  "items",
+  "procurement_item_variant",
+  "test",
+  "section_break_yqty",
+  "total_qty",
+  "column_break_kkba",
+  "subtotal",
+  "discount",
+  "total"
+ ],
+ "fields": [
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "options": "Procurement Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_yqty",
+   "fieldtype": "Section Break"
+  },
+  {
+   "bold": 1,
+   "fieldname": "total_qty",
+   "fieldtype": "Float",
+   "label": "Total QTY",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_kkba",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subtotal",
+   "fieldtype": "Currency",
+   "label": "SubTotal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "discount",
+   "fieldtype": "Currency",
+   "label": "Discount",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "label": "Total",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_invoice",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Supplier Invoice No",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_ewif",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tracking_number",
+   "fieldtype": "Data",
+   "label": "Tracking Number"
+  },
+  {
+   "fieldname": "section_break_rnzz",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "transporter_invoice_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Transporter Invoice No"
+  },
+  {
+   "fieldname": "supplier_invoice_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Supplier Invoice Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "transporter_invoice_date",
+   "fieldtype": "Date",
+   "label": "Transporter Invoice Date"
+  },
+  {
+   "fieldname": "transportation_method",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Transportation Method",
+   "options": "SEA\nAIR"
+  },
+  {
+   "fieldname": "column_break_otni",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "procurement_item_variant",
+   "fieldtype": "Table",
+   "label": "Item Variant",
+   "options": "Procurement Item Variant"
+  },
+  {
+   "fieldname": "test",
+   "fieldtype": "Data",
+   "label": "test"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-12-22 19:57:35.018024",
+ "modified_by": "Administrator",
+ "module": "Grupo Real Tools",
+ "name": "Procurement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

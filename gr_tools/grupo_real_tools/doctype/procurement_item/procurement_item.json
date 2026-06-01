@@ -1,0 +1,160 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-19 21:36:31.170136",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "create_variants_btn",
+  "item_code",
+  "column_break_glgb",
+  "item_name",
+  "item_group",
+  "selling_rate",
+  "section_break_nzgd",
+  "qty",
+  "column_break_zofd",
+  "purchase_rate",
+  "column_break_dkmh",
+  "subtotal",
+  "column_break_qjfd",
+  "discount",
+  "column_break_denx",
+  "total",
+  "unit_cost"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "fieldname": "item_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Group",
+   "options": "Item Group",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Name"
+  },
+  {
+   "columns": 1,
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Quantity",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "columns": 1,
+   "fieldname": "unit_cost",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Unit Cost",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "subtotal",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "SubTotal",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "default": "0.00",
+   "fieldname": "discount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Discount",
+   "non_negative": 1
+  },
+  {
+   "bold": 1,
+   "columns": 1,
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "columns": 1,
+   "fieldname": "selling_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Selling Rate",
+   "non_negative": 1
+  },
+  {
+   "bold": 1,
+   "columns": 1,
+   "fieldname": "purchase_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Purchase Rate",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_glgb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_nzgd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_zofd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_dkmh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_qjfd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_denx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "create_variants_btn",
+   "fieldtype": "Button",
+   "in_list_view": 1,
+   "label": "Create Variants"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-12-22 19:50:55.807271",
+ "modified_by": "Administrator",
+ "module": "Grupo Real Tools",
+ "name": "Procurement Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,5 +1,7 @@
 import frappe
+from frappe.utils import flt
 from erpnext.utilities.product import get_price
+from gr_tools.www.categories import _get_descendant_item_groups
 
 
 def _comma_separated_to_list(value: str | None) -> list[str]:
@@ -9,20 +11,27 @@ def _comma_separated_to_list(value: str | None) -> list[str]:
 	return [item.strip() for item in value.split(",") if item.strip()]
 
 
-def _get_descendant_categories(categories: list[str]) -> list[str]:
-	if not categories:
-		return []
+def _group_items_by_template(items: list[dict]) -> list[dict]:
+	products = {}
 
-	descendant_groups = frappe.db.sql("""
-		WITH RECURSIVE category_tree AS (
-			SELECT name FROM `tabItem Group` WHERE name IN %(categories)s
-			UNION ALL
-			SELECT child.name FROM `tabItem Group` child
-			INNER JOIN category_tree ON child.parent_item_group = category_tree.name
-		)
-		SELECT DISTINCT name FROM category_tree;
-		""", {"categories": categories}, pluck='name')
-	return descendant_groups
+	for item in items:
+		template_code = item.get("variant_of") or item.get("item_code")
+
+		product = products.setdefault(template_code, {
+			"item_code": template_code,
+			"item_name": item.pop("template_item_name", None) or item.get("item_name"),
+			"image": item.get("image"),
+			"item_group": item.get("item_group"),
+			"price_summary": None,
+			"variants": [],
+		})
+
+		product["variants"].append(item)
+
+	for product in products.values():
+		product["price_summary"] = _build_price_summary(product["variants"])
+
+	return list(products.values())
 
 
 def _build_base_query():
@@ -42,6 +51,8 @@ def _build_base_query():
 			item.item_name,
 			item.image,
 			item.item_group,
+			item.variant_of,
+			template.item_name as template_item_name,
 			(bin.actual_qty - bin.reserved_stock) as actual_qty,
 			COALESCE(
 				(SELECT JSON_OBJECTAGG(item_attr.attribute, item_attr.attribute_value)
@@ -50,6 +61,7 @@ def _build_base_query():
 			) as attributes
 		FROM `tabBin` AS bin
 		JOIN `tabItem` AS item ON item.item_code = bin.item_code
+		LEFT JOIN `tabItem` AS template ON template.name = item.variant_of
 		WHERE (bin.actual_qty - bin.reserved_stock) > 0 AND bin.warehouse = %(warehouse)s
 	"""
 
@@ -62,11 +74,11 @@ def _get_item_price(item_code):
 		company=frappe.get_single_value('Global Defaults', 'default_company')
 	) or {}
 
-	if price.get('formatted_discount_rate'):
+	# if price.get('formatted_discount_rate'):
 		# When 'Formatted Discount Rate' is Set, other fields are empty so auto-calculated here!
-		price.mrp = float(price.formatted_mrp.replace('$', '').strip())
-		price.discount_rate = float(price.formatted_discount_rate.replace('$', '').strip())
-		price.discount_percent = round((price.discount_rate / price.mrp) * 100, 2)
+		# price.mrp = float(price.formatted_mrp.replace('$', '').strip())
+		# price.discount_rate = float(price.formatted_discount_rate.replace('$', '').strip())
+		# price.discount_percent = round((price.discount_rate / price.mrp) * 100, 2)
 
 	if price.get('discount_percent'):  # If there is any discount. FIXME: As Fallback?
 		price.formatted_discount_percent = f"{price.discount_percent:.0f}%"
@@ -74,8 +86,37 @@ def _get_item_price(item_code):
 	return price
 
 
+def _build_price_summary(variants: list[dict]) -> dict | None:
+	prices = []
+	first_price = None
+
+	for variant in variants:
+		price = variant.get("price") or {}
+		price_list_rate = price.get("price_list_rate")
+
+		if price_list_rate is None:
+			continue
+
+		if first_price is None:
+			first_price = price
+
+		prices.append(flt(price_list_rate))
+
+	if not prices:
+		return None
+
+	min_price = min(prices)
+	max_price = max(prices)
+
+	return {
+		"type": "single" if (min_price == max_price) else "range",
+		"min_price": min_price,
+		"max_price": max_price,
+	}
+
+
 @frappe.whitelist(allow_guest=True)
-def get_product(item_code: str):
+def get_item(item_code: str):
 	"""
 	Get a single product by item_code.
 
@@ -97,8 +138,78 @@ def get_product(item_code: str):
 	return item[0]
 
 
+@frappe.whitelist(allow_guest=True)
+def get_items_from_template(item_code: str):
+	"""
+	Get the template for a variant item and all available variants.
+
+	Parameters:
+		item_code (str): Variant item code used to resolve the template.
+
+	Returns:
+		Template product with available variants.
+	"""
+	warehouse = frappe.get_single_value('Stock Settings', 'default_warehouse')
+	items = frappe.db.sql("""
+		SELECT
+			item.item_code,
+			item.item_name,
+			item.image,
+			item.item_group,
+			item.variant_of,
+			template.item_name as template_item_name,
+			(bin.actual_qty - bin.reserved_stock) as actual_qty,
+			COALESCE(
+				(SELECT JSON_OBJECTAGG(item_attr.attribute, item_attr.attribute_value)
+				FROM `tabItem Variant Attribute` AS item_attr
+				WHERE item_attr.parent = item.item_code), JSON_OBJECT()
+			) as attributes
+		FROM `tabBin` AS bin
+		JOIN `tabItem` AS item ON item.item_code = bin.item_code
+		LEFT JOIN `tabItem` AS template ON template.name = item.variant_of
+		WHERE
+			(item.item_code = %(item_code)s OR item.variant_of = %(item_code)s)
+			AND (bin.actual_qty - bin.reserved_stock) > 0
+			AND bin.warehouse = %(warehouse)s
+		ORDER BY item.creation ASC
+	""", {"item_code": item_code, "warehouse": warehouse}, as_dict=True)
+
+	if not items:
+		return []
+
+	prices = []
+	product = {
+		"item_code": item_code,
+		"item_name": items[0].pop("template_item_name", None),
+		"image": items[0].pop("image", None),
+		"item_group": items[0].pop("item_group", None),
+		"price_summary": None,
+		"variants": [],
+	}
+
+	for item in items:
+		item.price = _get_item_price(item.item_code)
+		item.attributes = frappe.parse_json(item.attributes)
+
+		if item.price.get("price_list_rate") is not None:
+			prices.append(flt(item.price.get("price_list_rate")))
+
+		product["variants"].append(item)
+
+	if prices:
+		min_price = min(prices)
+		max_price = max(prices)
+		product["price_summary"] = {
+			"type": "single" if min_price == max_price else "range",
+			"min_price": min_price,
+			"max_price": max_price,
+		}
+
+	return product
+
+
 @frappe.whitelist(allow_guest=True, methods=['GET'])
-def get_products(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 15):
+def get_items(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 15):
 	"""
 	Get a list of available products or a specific product by item_code. Includes filtering by category and its descendants.
 
@@ -163,7 +274,7 @@ def get_products(sale: bool = False, category: str = '', size: str = '', color: 
 		params["items_on_sale"] = items_on_sale
 
 	if category:  # Filter by categories and their descendants
-		if categories := _get_descendant_categories(_comma_separated_to_list(category)):
+		if categories := _get_descendant_item_groups(_comma_separated_to_list(category)):
 			params["categories"] = categories
 			query += " AND item.item_group IN %(categories)s"
 		else:
@@ -176,46 +287,12 @@ def get_products(sale: bool = False, category: str = '', size: str = '', color: 
 		item.price = _get_item_price(item.item_code)
 		item.attributes = frappe.parse_json(item.attributes)
 
-	return items
+	return _group_items_by_template(items)
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
-def get_categories():
-	""" Returns Item Groups visible in website as a nested tree. """
-	ItemGroup = frappe.qb.DocType("Item Group")
-
-	rows = (
-		frappe.qb.from_(ItemGroup)
-		.select(ItemGroup.name, ItemGroup.parent_item_group, ItemGroup.is_group)
-		.where(ItemGroup.show_in_website == 1)
-		.orderby(ItemGroup.weightage)
-	).run(as_dict=True)
-
-	nodes = {
-		row["name"]: {
-			"name": row["name"],
-			"parent_item_group": row["parent_item_group"],
-			"is_group": bool(row["is_group"]),
-			"children": [],
-		}
-		for row in rows
-	}
-
-	tree = []
-	for row in rows:
-		node = nodes[row["name"]]
-		parent = nodes.get(row["parent_item_group"])
-
-		if parent:
-			parent["children"].append(node)
-		else:
-			tree.append(node)
-
-	return tree
-
-
-@frappe.whitelist(allow_guest=True, methods=['GET'])
-def get_item_attribute_values(attribute: str):
+def get_item_attributes(attribute: str):
+	""" Returns Item Attribute Values as Requested as a nested tree. """
 	rows = frappe.get_all(
 		"Item Attribute Value",
 		filters={
