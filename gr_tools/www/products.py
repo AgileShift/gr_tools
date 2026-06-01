@@ -209,7 +209,7 @@ def get_items_from_template(item_code: str):
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
-def get_items(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 45):
+def get_items(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 19):
 	"""
 	Get a list of available products or a specific product by item_code. Includes filtering by category and its descendants.
 
@@ -244,13 +244,25 @@ def get_items(sale: bool = False, category: str = '', size: str = '', color: str
 
 	if color:
 		params["colors"] = _comma_separated_to_list(color)
-		query += """
-			AND EXISTS (
-				SELECT 1
-				FROM `tabItem Variant Attribute` iva_color
-				WHERE iva_color.parent = item.name
-					AND iva_color.attribute = 'Color'
-					AND iva_color.attribute_value IN %(colors)s
+		name_conditions = []
+		for index, color_name in enumerate(params["colors"]):
+			param_key = f"color_like_{index}"
+			params[param_key] = f"%{color_name.lower()}%"
+			name_conditions.append(
+				f"(LOWER(item.item_name) LIKE %({param_key})s OR LOWER(template.item_name) LIKE %({param_key})s)"
+			)
+
+		name_filter = " OR ".join(name_conditions) if name_conditions else "0 = 1"
+		query += f"""
+			AND (
+				EXISTS (
+					SELECT 1
+					FROM `tabItem Variant Attribute` iva_color
+					WHERE iva_color.parent = item.name
+						AND iva_color.attribute = 'Color'
+						AND iva_color.attribute_value IN %(colors)s
+				)
+				OR {name_filter}
 			)
 		"""
 
@@ -300,7 +312,7 @@ def get_item_attributes(attribute: str):
 			"parenttype": "Item Attribute",
 		},
 		fields=["attribute_value as value", "abbr", "idx"],
-		order_by="idx asc",
+		order_by="abbr, idx",
 	)
 
 	return [{"value": row.value, "abbr": row.abbr} for row in rows]
