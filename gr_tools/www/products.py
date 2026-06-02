@@ -74,11 +74,11 @@ def _get_item_price(item_code):
 		company=frappe.get_single_value('Global Defaults', 'default_company')
 	) or {}
 
-	# if price.get('formatted_discount_rate'):
+	if price.get('formatted_discount_rate'):
 		# When 'Formatted Discount Rate' is Set, other fields are empty so auto-calculated here!
-		# price.mrp = float(price.formatted_mrp.replace('$', '').strip())
-		# price.discount_rate = float(price.formatted_discount_rate.replace('$', '').strip())
-		# price.discount_percent = round((price.discount_rate / price.mrp) * 100, 2)
+		price.mrp = float(price.formatted_mrp.replace('$', '').strip())
+		price.discount_rate = float(price.formatted_discount_rate.replace('$', '').strip())
+		price.discount_percent = round((price.discount_rate / price.mrp) * 100, 2)
 
 	if price.get('discount_percent'):  # If there is any discount. FIXME: As Fallback?
 		price.formatted_discount_percent = f"{price.discount_percent:.0f}%"
