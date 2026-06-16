@@ -1,5 +1,6 @@
 import frappe
 from frappe.utils import flt
+from frappe.utils.caching import http_cache, redis_cache
 from erpnext.utilities.product import get_price
 from gr_tools.www.categories import _get_descendant_item_groups
 
@@ -66,6 +67,7 @@ def _build_base_query():
 	"""
 
 
+@redis_cache(ttl=300)
 def _get_item_price(item_code):
 	price = get_price(
 		item_code=item_code,
@@ -209,9 +211,11 @@ def get_items_from_template(item_code: str):
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
+@http_cache(public=True, max_age=60, stale_while_revalidate=300)
+@redis_cache(ttl=60, user=None, shared=False)
 def get_items(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 19):
 	"""
-	Get a list of available products or a specific product by item_code. Includes filtering by category and its descendants.
+	Get a list of available products, includes filtering by category and its descendants.
 
 	Parameters:
 		sale (bool): Fetches only products with discounts.
@@ -267,7 +271,6 @@ def get_items(sale: bool = False, category: str = '', size: str = '', color: str
 		"""
 
 	if sale:
-		# TODO: Validate the valid_from and valid_upto dates. Nevertheless, the query should work with the disable filter.
 		items_on_sale = frappe.db.sql("""
 			SELECT
 				pri.item_code
@@ -276,7 +279,7 @@ def get_items(sale: bool = False, category: str = '', size: str = '', color: str
 			WHERE
 				pr.disable = 0 and pr.apply_on = 'Item Code'
 			AND
-				(pr.valid_from <= CURDATE() AND pr.valid_upto >= CURDATE()) -- TODO: Check if valid_from is null
+				(pr.valid_from <= CURDATE() AND pr.valid_upto >= CURDATE()) -- TODO: Validate the valid_from and valid_upto dates.
 		""", as_dict=True, pluck='item_code')
 
 		if not items_on_sale:
@@ -303,6 +306,8 @@ def get_items(sale: bool = False, category: str = '', size: str = '', color: str
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
+@http_cache(public=True, max_age=3000, stale_while_revalidate=3600)
+@redis_cache(ttl=3000, user=None, shared=False)
 def get_item_attributes(attribute: str):
 	""" Returns Item Attribute Values as Requested as a nested tree. """
 	rows = frappe.get_all(
