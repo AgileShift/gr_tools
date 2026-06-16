@@ -1,4 +1,5 @@
 import frappe
+from frappe.utils.caching import http_cache, redis_cache
 
 
 def _get_descendant_item_groups(item_groups: list[str]) -> list[str]:
@@ -18,6 +19,8 @@ def _get_descendant_item_groups(item_groups: list[str]) -> list[str]:
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
+@http_cache(public=True, max_age=900, stale_while_revalidate=3600)
+@redis_cache(ttl=900, user=None, shared=False)
 def get_item_groups():
 	""" Returns Item Groups visible in website as a nested tree. """
 	ItemGroup = frappe.qb.DocType("Item Group")
