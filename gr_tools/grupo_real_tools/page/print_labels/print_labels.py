@@ -31,5 +31,4 @@ def get_products(pricing_rule: str = None):
 		for item in items:
 			item.price = _get_item_price(item.item_code)
 
-		return items
-
+	return items

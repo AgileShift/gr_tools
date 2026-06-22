@@ -67,7 +67,7 @@ def _build_base_query():
 	"""
 
 
-# @redis_cache(ttl=120) # FIXME: DISABLE This dates :D
+## @redis_cache(ttl=120) # FIXME: DISABLE This dates :D
 def _get_item_price(item_code):
 	price = get_price(
 		item_code=item_code,
