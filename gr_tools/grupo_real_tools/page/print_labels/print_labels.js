@@ -12,7 +12,8 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 		{label: __('Has Variants'), fieldtype: 'Check', fieldname: 'has_variants'},
 		{label: __('Variant Of'), fieldtype: 'Link', fieldname: 'variant_of', options: 'Item'},
 		{label: __('Purchase Invoice'), fieldtype: 'Link', fieldname: 'purchase_invoice', options: 'Purchase Invoice'},
-		{label: __('Pricing Rule'), fieldtype: 'Link', fieldname: 'pricing_rule', options: 'Pricing Rule'}
+		{label: __('Pricing Rule'), fieldtype: 'Link', fieldname: 'pricing_rule', options: 'Pricing Rule'},
+		{label: __('Print Format'), fieldtype: 'Link', fieldname: 'print_format', options: 'Print Format'},
 	].forEach((df) => {
 		page[df.fieldname] = page.add_field({
 			label: df.label,
@@ -37,7 +38,7 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 					method: "frappe.www.printview.get_rendered_raw_commands",
 					args: {
 						doc: 'Item', name: e.target.id,
-						print_format: 'Item Label With Price',
+						print_format: page.print_format.value || 'Item Label With Price',
 						_lang: this.lang_code,
 					}
 				}).then((r) => {
@@ -66,20 +67,7 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 			}).then((r) => {
 				render_template({items: r.message});
 			});
-		} else {
-			// TODO: WORK in Progress
-			frappe.call({
-				debounce: 1000,
-				method: 'gr_tools.www.products.get_products',
-				args: {
-					start: 0,
-					limit: 20,
-				}, callback: (r) => {
-					render_template({items: r.message})
-				}
-			});
 		}
-
 	}
 
 	function render_template(context) {
