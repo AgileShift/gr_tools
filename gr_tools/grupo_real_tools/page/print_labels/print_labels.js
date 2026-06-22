@@ -55,7 +55,6 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 			.catch((err) => {
 				frappe.ui.form.qz_fail(err);
 			});
-
 	});
 
 	function load_products() {

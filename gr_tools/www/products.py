@@ -212,7 +212,7 @@ def get_items_from_template(item_code: str):
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
 @http_cache(public=True, max_age=60, stale_while_revalidate=300)
-@redis_cache(ttl=60, user=None, shared=False)
+# @redis_cache(ttl=60, user=None, shared=False)
 def get_items(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 19):
 	"""
 	Get a list of available products, includes filtering by category and its descendants.
