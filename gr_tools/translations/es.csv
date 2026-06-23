@@ -43,3 +43,9 @@ Company,Empresa
 Company Tax ID,RUC
 
 Deliveries,Entrega
+
+Address Line 1,Direccion 1
+Address Line 2,Direccion y referencias
+City/Town,Municipio
+Country,Barrio o Residencial
+State/Province,Departamento
