@@ -17,6 +17,7 @@
 			.gr-pos-total-label { min-width: 0; }
 			.gr-pos-rate-label { font-size: 11px; line-height: 1.2; margin-top: 2px; }
 			.gr-pos-alt-row .gr-pos-total-value, .gr-pos-numpad-alt-total span { color: var(--text-color); font-weight: 600; }
+			.gr-pos-payment-reference { margin-top: var(--margin-sm); cursor: text; user-select: text; }
 		</style>`).appendTo("head");
 	}
 
@@ -200,10 +201,45 @@
 		});
 	}
 
+	function render_payment_references() {
+		const payments = this.events?.get_frm?.()?.doc?.payments || [];
+
+		payments.filter((payment) => flt(payment.amount)).forEach((payment) => {
+			const mode = this.sanitize_mode_of_payment(payment.mode_of_payment);
+			const $payment_mode = this.$payment_modes.find(
+				`.mode-of-payment[data-mode="${mode}"]`
+			);
+
+			const $input = $("<input>", {
+				class: "form-control input-xs gr-pos-payment-reference",
+				type: "text",
+				placeholder: __("Reference No"),
+			})
+				.val(payment.reference_no || "")
+				.appendTo($payment_mode);
+
+			$input.on("keydown", (event) => event.stopPropagation());
+			$input.on("change", () => {
+				frappe.model.set_value(
+					payment.doctype,
+					payment.name,
+					"reference_no",
+					$input.val().trim()
+				);
+			});
+		});
+	}
+
 	function patch_pos_payment() {
 		const payment = window.erpnext?.PointOfSale?.Payment;
 		if (!payment) return false;
 		if (payment.prototype[PAYMENT_PATCH_FLAG]) return true;
+
+		const render_payment_mode_dom = payment.prototype.render_payment_mode_dom;
+		payment.prototype.render_payment_mode_dom = function () {
+			render_payment_mode_dom.call(this);
+			render_payment_references.call(this);
+		};
 
 		const make_invoice_field_dialog = payment.prototype.make_invoice_field_dialog;
 		payment.prototype.make_invoice_field_dialog = function () {
