@@ -274,16 +274,16 @@
 			);
 			return { item, lines, height: Math.max(150, lines.length * line_height + 74) };
 		});
-		const summary_height = 24 + (2 + taxes.length) * 46;
-		const total_height = alt_total !== null ? 156 : 104;
+		const summary_height = 20 + (2 + taxes.length) * 36;
+		const total_height = alt_total !== null ? 130 : 104;
 		const height =
-			338 +
+			320 +
 			item_rows.reduce((total, row) => total + row.height, 0) +
 			18 +
 			summary_height +
 			24 +
 			total_height +
-			90;
+			60;
 		const product_images = await Promise.all(
 			items.map((item) => load_canvas_image(item.image))
 		);
@@ -335,9 +335,9 @@
 		);
 		context.textAlign = "left";
 
-		draw_rounded_rect(context, 40, 158, width - 80, height - 178, 28, "#ffffff");
+		draw_rounded_rect(context, 40, 140, width - 80, height - 160, 28, "#ffffff");
 
-		let y = 188;
+		let y = 170;
 		context.fillStyle = "#6b7280";
 		context.font = "700 16px Arial, sans-serif";
 		context.fillText("PREPARADO PARA", padding, y);
@@ -403,7 +403,7 @@
 
 		y += 18;
 		draw_rounded_rect(context, padding, y, content_width, summary_height, 18, "#fdf1f2");
-		let summary_y = y + 24;
+		let summary_y = y + 20;
 		const draw_summary = (label, value) => {
 			context.fillStyle = "#4b5563";
 			context.font = "600 19px Arial, sans-serif";
@@ -413,7 +413,7 @@
 			context.textAlign = "right";
 			context.fillText(value, width - padding - 24, summary_y);
 			context.textAlign = "left";
-			summary_y += 46;
+			summary_y += 36;
 		};
 
 		draw_summary(
@@ -434,7 +434,7 @@
 		context.font = "700 18px Arial, sans-serif";
 		context.fillText("TOTAL A PAGAR", padding + 28, y + 24);
 		context.fillStyle = "#ffffff";
-		context.font = "800 38px Arial, sans-serif";
+		context.font = "800 32px Arial, sans-serif";
 		context.textAlign = "right";
 		context.fillText(format_currency(grand_total, currency), width - padding - 28, y + 18);
 		context.textAlign = "left";
@@ -443,9 +443,9 @@
 			const rate_label = get_rate_label(currency, target_currency, grand_total, alt_total);
 			context.fillStyle = "#9ca3af";
 			context.font = "600 16px Arial, sans-serif";
-			context.fillText(`Equivalente en ${target_currency}`, padding + 28, y + 86);
+			context.fillText(`Equivalente en ${target_currency}`, padding + 28, y + 72);
 			if (rate_label) {
-				context.fillText(rate_label, padding + 28, y + 110);
+				context.fillText(rate_label, padding + 28, y + 96);
 			}
 			context.fillStyle = BRAND_PINK;
 			context.font = "800 30px Arial, sans-serif";
@@ -453,7 +453,7 @@
 			context.fillText(
 				format_currency(alt_total, target_currency),
 				width - padding - 28,
-				y + 91
+				y + 77
 			);
 			context.textAlign = "left";
 		}
@@ -461,7 +461,7 @@
 		context.fillStyle = "#df717e";
 		context.font = "600 17px Arial, sans-serif";
 		context.textAlign = "center";
-		context.fillText(__("Gracias por elegir {0}", [doc.company]), width / 2, height - 50);
+		context.fillText(__("Gracias por elegir {0}", [doc.company]), width / 2, height - 42);
 		context.textAlign = "left";
 
 		return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
