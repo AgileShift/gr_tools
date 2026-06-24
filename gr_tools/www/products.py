@@ -12,6 +12,35 @@ def _comma_separated_to_list(value: str | None) -> list[str]:
 	return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _build_price_summary(variants: list[dict]) -> dict | None:
+	prices = []
+	first_price = None
+
+	for variant in variants:
+		price = variant.get("price") or {}
+		price_list_rate = price.get("price_list_rate")
+
+		if price_list_rate is None:
+			continue
+
+		if first_price is None:
+			first_price = price
+
+		prices.append(flt(price_list_rate))
+
+	if not prices:
+		return None
+
+	min_price = min(prices)
+	max_price = max(prices)
+
+	return {
+		"type": "single" if (min_price == max_price) else "range",
+		"min_price": min_price,
+		"max_price": max_price,
+	}
+
+
 def _group_items_by_template(items: list[dict]) -> list[dict]:
 	products = {}
 
@@ -67,7 +96,7 @@ def _build_base_query():
 	"""
 
 
-## @redis_cache(ttl=120) # FIXME: DISABLE This dates :D
+@redis_cache(ttl=120)
 def _get_item_price(item_code):
 	price = get_price(
 		item_code=item_code,
@@ -86,35 +115,6 @@ def _get_item_price(item_code):
 		price.formatted_discount_percent = f"{price.discount_percent:.0f}%"
 
 	return price
-
-
-def _build_price_summary(variants: list[dict]) -> dict | None:
-	prices = []
-	first_price = None
-
-	for variant in variants:
-		price = variant.get("price") or {}
-		price_list_rate = price.get("price_list_rate")
-
-		if price_list_rate is None:
-			continue
-
-		if first_price is None:
-			first_price = price
-
-		prices.append(flt(price_list_rate))
-
-	if not prices:
-		return None
-
-	min_price = min(prices)
-	max_price = max(prices)
-
-	return {
-		"type": "single" if (min_price == max_price) else "range",
-		"min_price": min_price,
-		"max_price": max_price,
-	}
 
 
 @frappe.whitelist(allow_guest=True)
@@ -211,8 +211,8 @@ def get_items_from_template(item_code: str):
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
-@http_cache(public=True, max_age=60, stale_while_revalidate=300)
-# @redis_cache(ttl=60, user=None, shared=False)
+@http_cache(public=True, max_age=300, stale_while_revalidate=900)
+@redis_cache(ttl=90, user=None, shared=False)
 def get_items(sale: bool = False, category: str = '', size: str = '', color: str = '', start: int = 0, limit: int = 19):
 	"""
 	Get a list of available products, includes filtering by category and its descendants.
@@ -296,7 +296,7 @@ def get_items(sale: bool = False, category: str = '', size: str = '', color: str
 			return []  # Bad Item Group
 
 	# Add Pagination # TODO: Add Sort By in Settings
-	items = frappe.db.sql(query + " ORDER BY item.creation DESC LIMIT %(start)s, %(limit)s;", params, as_dict=True)
+	items = frappe.db.sql(query + " ORDER BY item.creation ASC LIMIT %(start)s, %(limit)s;", params, as_dict=True)
 
 	for item in items:
 		item.price = _get_item_price(item.item_code)
