@@ -556,7 +556,7 @@
 				if (!charges.includes(row)) return;
 
 				$("<button>", {
-					class: "btn btn-default btn-xs icon-btn gr-pos-remove-charge",
+					class: "btn btn-default btn-xs ml-1 mb-1 gr-pos-remove-charge",
 					type: "button",
 					title: __("Remove charge"),
 					html: frappe.utils.icon("close", "xs", "es-icon"),
@@ -575,7 +575,12 @@
 						frm.refresh_field("taxes");
 						item_cart.update_totals_section(frm);
 					})
-					.appendTo($rows.eq(index).find(".tax-value"));
+					.appendTo(
+						$rows
+							.eq(index)
+							.find(".tax-value")
+							.addClass("d-flex align-items-center whitespace-nowrap")
+					);
 			});
 	}
 
@@ -809,6 +814,44 @@
 		return true;
 	}
 
+	function set_shipping_rule_description_hook(payment) {
+		const frm = payment?.events?.get_frm?.();
+		if (!frm?.cscript || frm.cscript.__gr_pos_shipping_rule_description) return;
+
+		const custom_shipping_rule = frm.cscript.custom_shipping_rule;
+		frm.cscript.custom_shipping_rule = async function (...args) {
+			console.log(args)
+
+			await custom_shipping_rule?.apply(this, args);
+			if (!frm.doc.shipping_rule) return;
+
+			const { message: rule } = await frappe.db.get_value(
+				"Shipping Rule",
+				frm.doc.shipping_rule,
+				["label", "account", "cost_center"]
+			);
+			const charge = [...(frm.doc.taxes || [])]
+				.reverse()
+				.find(
+					(row) =>
+						row.charge_type === "Actual" &&
+						row.account_head === rule.account &&
+						row.cost_center === rule.cost_center
+				);
+
+			if (charge && charge.description !== rule.label) {
+				await frappe.model.set_value(
+					charge.doctype,
+					charge.name,
+					"description",
+					rule.label
+				);
+				window.cur_pos?.cart?.update_totals_section(frm);
+			}
+		};
+		frm.cscript.__gr_pos_shipping_rule_description = true;
+	}
+
 	function render_payment_references() {
 		const payments = get_doc(this).payments || [];
 		this.$payment_modes.find(".gr-pos-payment-check, .gr-pos-payment-reference-row").remove();
@@ -937,6 +980,7 @@
 
 		const make_invoice_field_dialog = payment.prototype.make_invoice_field_dialog;
 		payment.prototype.make_invoice_field_dialog = function () {
+			set_shipping_rule_description_hook(this);
 			set_additional_info_queries(this);
 			if (this.addl_dlg) {
 				sync_additional_info_dialog(this);
