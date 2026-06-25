@@ -518,7 +518,7 @@
 
 		$label.addClass("gr-pos-cart-label");
 		const $button = $("<button>", {
-			class: "gr-pos-capture-cart",
+			class: "btn btn-default icon-btn gr-pos-capture-cart",
 			type: "button",
 			title: __("Download cart image"),
 			html: frappe.utils.icon("camera", "sm"),
@@ -544,6 +544,41 @@
 		});
 	}
 
+	function mount_charge_remove_buttons(item_cart, taxes) {
+		const charges = (taxes || []).filter(
+			(row) => flt(row.tax_amount_after_discount_amount) && row.charge_type === "Actual"
+		);
+		const $rows = item_cart.$totals_section.find(".tax-row");
+
+		(taxes || [])
+			.filter((row) => flt(row.tax_amount_after_discount_amount))
+			.forEach((row, index) => {
+				if (!charges.includes(row)) return;
+
+				$("<button>", {
+					class: "btn btn-default btn-xs icon-btn gr-pos-remove-charge",
+					type: "button",
+					title: __("Remove charge"),
+					html: frappe.utils.icon("close", "xs", "es-icon"),
+				})
+					.on("click", async (event) => {
+						event.preventDefault();
+						event.stopPropagation();
+
+						const frm = item_cart.events.get_frm();
+						frappe.model.clear_doc(row.doctype, row.name);
+						if (frm.doc.shipping_rule) {
+							await frm.set_value("shipping_rule", "");
+						}
+						frm.dirty();
+						frm.cscript.calculate_taxes_and_totals();
+						frm.refresh_field("taxes");
+						item_cart.update_totals_section(frm);
+					})
+					.appendTo($rows.eq(index).find(".tax-value"));
+			});
+	}
+
 	function patch_pos_cart() {
 		const item_cart = window.erpnext?.PointOfSale?.ItemCart;
 		if (!item_cart) return false;
@@ -555,10 +590,53 @@
 			mount_cart_capture_button(this);
 		};
 
+		const render_customer_fields = item_cart.prototype.render_customer_fields;
+		item_cart.prototype.render_customer_fields = function () {
+			this.$customer_section
+				.find(".customer-fields-container")
+				.prepend('<div class="customer_name-field"></div>');
+			render_customer_fields.call(this);
+
+			const control = frappe.ui.form.make_control({
+				df: {
+					fieldname: "customer_name",
+					fieldtype: "Data",
+					label: __("Customer Name"),
+					reqd: 1,
+				},
+				parent: this.$customer_section.find(".customer_name-field"),
+				render_input: true,
+			});
+			control.set_value(this.customer_info.customer_name);
+			control.$input.on("blur", async () => {
+				const customer_name = control.get_value().trim();
+				if (!customer_name || customer_name === this.customer_info.customer_name) return;
+
+				await frappe.db.set_value(
+					"Customer",
+					this.customer_info.customer,
+					"customer_name",
+					customer_name
+				);
+				this.customer_info.customer_name = customer_name;
+				await this.events.get_frm().set_value("customer_name", customer_name);
+				frappe.show_alert({
+					message: __("Updated successfully"),
+					indicator: "green",
+				});
+			});
+		};
+
 		const render_grand_total = item_cart.prototype.render_grand_total;
 		item_cart.prototype.render_grand_total = function (value) {
 			render_grand_total.call(this, value);
 			render_alt_total.call(this, value);
+		};
+
+		const render_taxes = item_cart.prototype.render_taxes;
+		item_cart.prototype.render_taxes = function (taxes) {
+			render_taxes.call(this, taxes);
+			mount_charge_remove_buttons(this, taxes);
 		};
 
 		const toggle_item_highlight = item_cart.prototype.toggle_item_highlight;
@@ -575,50 +653,13 @@
 		return true;
 	}
 
-	function update_stock_badge(item_details, value) {
-		const qty = flt(value);
-		let $badge = item_details.$component.find(".gr-pos-stock-badge");
-		if (!$badge.length) {
-			$badge = $('<div class="gr-pos-stock-badge" aria-live="polite">').insertAfter(
-				item_details.$item_price
-			);
-		}
-
-		$badge.attr("data-empty", qty > 0 ? "0" : "1").text(`${__("In Stock")}: ${qty}`);
-	}
-
-	function style_item_detail_fields(item_details, item) {
-		const primary_fields = ["qty", "rate", "discount_percentage"];
-		const supporting_fields = [
-			"uom",
-			"conversion_factor",
-			"warehouse",
-			"actual_qty",
-			"price_list_rate",
-		];
-
-		primary_fields.forEach((fieldname) => {
+	function style_item_detail_fields(item_details) {
+		item_details.$form_container.find(".actual_qty-control").addClass("gr-pos-stock-field");
+		["qty", "rate", "discount_percentage"].forEach((fieldname) => {
 			item_details.$form_container
 				.find(`.${fieldname}-control`)
 				.addClass("gr-pos-primary-field");
 		});
-		supporting_fields.forEach((fieldname) => {
-			item_details.$form_container
-				.find(`.${fieldname}-control`)
-				.addClass("gr-pos-supporting-field");
-		});
-
-		update_stock_badge(item_details, item.actual_qty);
-		const actual_qty_control = item_details.actual_qty_control;
-		if (actual_qty_control && !actual_qty_control.__gr_pos_stock_badge_patched) {
-			const set_value = actual_qty_control.set_value.bind(actual_qty_control);
-			actual_qty_control.set_value = function (value, ...args) {
-				const result = set_value(value, ...args);
-				update_stock_badge(item_details, value);
-				return result;
-			};
-			actual_qty_control.__gr_pos_stock_badge_patched = true;
-		}
 	}
 
 	function patch_pos_item_details() {
@@ -629,7 +670,7 @@
 		const render_form = item_details.prototype.render_form;
 		item_details.prototype.render_form = function (item) {
 			render_form.call(this, item);
-			style_item_detail_fields(this, item);
+			style_item_detail_fields(this);
 		};
 
 		item_details.prototype[ITEM_DETAILS_PATCH_FLAG] = true;
@@ -715,7 +756,7 @@
 		if (!$totals.length || $totals.find(".gr-pos-cart-additional-info").length) return;
 
 		const $button = $("<button>", {
-			class: "gr-pos-cart-additional-info",
+			class: "btn btn-default btn-sm mb-2 gr-pos-cart-additional-info",
 			type: "button",
 			html: `${frappe.utils.icon("edit", "sm")}<span>${__(
 				"Update Additional Information"
@@ -724,6 +765,48 @@
 
 		$button.on("click", () => show_additional_info_dialog(payment));
 		$totals.find(".add-discount-wrapper").before($button);
+	}
+
+	function patch_pos_controller() {
+		const controller = window.erpnext?.PointOfSale?.Controller;
+		if (!controller) return false;
+		if (controller.prototype.__gr_pos_additional_fields_patched) return true;
+
+		const fetch_invoice_fields = controller.prototype.fetch_invoice_fields;
+		controller.prototype.fetch_invoice_fields = async function () {
+			await fetch_invoice_fields.call(this);
+			if (this.payment) {
+				this.payment.invoice_fields = this.settings.invoice_fields;
+				mount_cart_additional_info_button(this.payment);
+			}
+		};
+
+		frappe.after_ajax(() => {
+			if (window.cur_pos?.payment) {
+				window.cur_pos.payment.invoice_fields = window.cur_pos.settings.invoice_fields;
+				mount_cart_additional_info_button(window.cur_pos.payment);
+			}
+		});
+
+		controller.prototype.__gr_pos_additional_fields_patched = true;
+		return true;
+	}
+
+	function patch_pos_item_selector() {
+		const item_selector = window.erpnext?.PointOfSale?.ItemSelector;
+		if (!item_selector) return false;
+		if (item_selector.prototype.__gr_pos_full_item_names_patched) return true;
+
+		const render_item_list = item_selector.prototype.render_item_list;
+		item_selector.prototype.render_item_list = function (items) {
+			render_item_list.call(this, items);
+			this.$items_container.find(".item-wrapper").each(function () {
+				$(this).find(".item-name").text($(this).attr("title"));
+			});
+		};
+
+		item_selector.prototype.__gr_pos_full_item_names_patched = true;
+		return true;
 	}
 
 	function render_payment_references() {
@@ -747,9 +830,9 @@
 						html: frappe.utils.icon("check", "xs"),
 					})
 				);
-				const $reference_row = $('<div class="gr-pos-payment-reference-row">').appendTo(
-					$payment_mode
-				);
+				const $reference_row = $(
+					'<div class="gr-pos-payment-reference-row mt-2">'
+				).appendTo($payment_mode);
 
 				const $input = $("<input>", {
 					class: "form-control input-xs gr-pos-payment-reference",
@@ -760,7 +843,7 @@
 					.appendTo($reference_row);
 
 				const $clear_button = $("<button>", {
-					class: "btn btn-default btn-xs gr-pos-clear-payment",
+					class: "btn btn-xs btn-default icon-btn gr-pos-clear-payment",
 					type: "button",
 					title: __("Clear payment"),
 					html: frappe.utils.icon("close", "xs", "es-icon"),
@@ -879,7 +962,16 @@
 		const cart_patched = patch_pos_cart();
 		const payment_patched = patch_pos_payment();
 		const item_details_patched = patch_pos_item_details();
-		if ((cart_patched && payment_patched && item_details_patched) || attempt >= 80) {
+		const item_selector_patched = patch_pos_item_selector();
+		const controller_patched = patch_pos_controller();
+		if (
+			(cart_patched &&
+				payment_patched &&
+				item_details_patched &&
+				item_selector_patched &&
+				controller_patched) ||
+			attempt >= 80
+		) {
 			return;
 		}
 		window.setTimeout(() => wait_for_pos(attempt + 1), 100);
