@@ -296,7 +296,7 @@ def get_items(sale: bool = False, category: str = '', size: str = '', color: str
 			return []  # Bad Item Group
 
 	# Add Pagination # TODO: Add Sort By in Settings
-	items = frappe.db.sql(query + " ORDER BY item.creation ASC LIMIT %(start)s, %(limit)s;", params, as_dict=True)
+	items = frappe.db.sql(query + " ORDER BY item.creation DESC LIMIT %(start)s, %(limit)s;", params, as_dict=True)
 
 	for item in items:
 		item.price = _get_item_price(item.item_code)

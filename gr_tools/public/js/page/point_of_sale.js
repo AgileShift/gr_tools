@@ -7,6 +7,7 @@
 	const exchange_rates = new Map();
 	const cart_images = new Map();
 	const has_value = (value) => value !== undefined && value !== null && value !== "";
+	const get_value = (value) => String(value ?? "").trim();
 
 	function get_doc(component) {
 		return component?.events?.get_frm?.()?.doc || {};
@@ -545,43 +546,96 @@
 	}
 
 	function mount_charge_remove_buttons(item_cart, taxes) {
-		const charges = (taxes || []).filter(
-			(row) => flt(row.tax_amount_after_discount_amount) && row.charge_type === "Actual"
+		const rendered_taxes = (taxes || []).filter((row) =>
+			flt(row.tax_amount_after_discount_amount)
 		);
+		const frm = item_cart.events.get_frm();
 		const $rows = item_cart.$totals_section.find(".tax-row");
 
-		(taxes || [])
-			.filter((row) => flt(row.tax_amount_after_discount_amount))
-			.forEach((row, index) => {
-				if (!charges.includes(row)) return;
+		rendered_taxes.forEach((row, index) => {
+			if (row.charge_type !== "Actual") return;
 
-				$("<button>", {
-					class: "btn btn-default btn-xs ml-1 mb-1 gr-pos-remove-charge",
-					type: "button",
-					title: __("Remove charge"),
-					html: frappe.utils.icon("close", "xs", "es-icon"),
+			$("<button>", {
+				class: "btn btn-default btn-xs ml-1 mb-1 gr-pos-remove-charge",
+				type: "button",
+				title: __("Remove charge"),
+				html: frappe.utils.icon("close", "xs", "es-icon"),
+			})
+				.on("click", async (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+
+					frappe.model.clear_doc(row.doctype, row.name);
+					if (frm.doc.shipping_rule) {
+						await frm.set_value("shipping_rule", "");
+					}
+					frm.dirty();
+					await frm.cscript.calculate_taxes_and_totals();
+					frm.refresh_field("taxes");
+					item_cart.update_totals_section(frm);
 				})
-					.on("click", async (event) => {
-						event.preventDefault();
-						event.stopPropagation();
+				.appendTo(
+					$rows
+						.eq(index)
+						.find(".tax-value")
+						.addClass("d-flex align-items-center whitespace-nowrap")
+				);
+		});
+	}
 
-						const frm = item_cart.events.get_frm();
-						frappe.model.clear_doc(row.doctype, row.name);
-						if (frm.doc.shipping_rule) {
-							await frm.set_value("shipping_rule", "");
-						}
-						frm.dirty();
-						frm.cscript.calculate_taxes_and_totals();
-						frm.refresh_field("taxes");
-						item_cart.update_totals_section(frm);
-					})
-					.appendTo(
-						$rows
-							.eq(index)
-							.find(".tax-value")
-							.addClass("d-flex align-items-center whitespace-nowrap")
-					);
-			});
+	function make_customer_name_field(item_cart) {
+		const $customer_fields = item_cart.$customer_section.find(".customer-fields-container");
+		if (!$customer_fields.length) return;
+
+		let $field = $customer_fields.find(".customer_name-field");
+		if (!$field.length) {
+			$field = $('<div class="customer_name-field"></div>').prependTo($customer_fields);
+		} else {
+			$field.empty().prependTo($customer_fields);
+		}
+
+		const control = frappe.ui.form.make_control({
+			df: {
+				fieldname: "customer_name",
+				fieldtype: "Data",
+				label: __("Customer Name"),
+				reqd: 1,
+			},
+			parent: $field,
+			render_input: true,
+		});
+		item_cart.customer_customer_name_field = control;
+		control.set_value(item_cart.customer_info?.customer_name || "");
+		control.$input.on("keydown", (event) => event.stopPropagation());
+		control.$input.on("blur", async () => {
+			const customer = item_cart.customer_info?.customer;
+			const customer_name = get_value(control.get_value());
+			const current_name = get_value(item_cart.customer_info?.customer_name);
+			if (!customer_name || !customer || customer_name === current_name) {
+				control.set_value(current_name);
+				return;
+			}
+
+			control.$input.prop("disabled", true);
+			try {
+				await frappe.db.set_value("Customer", customer, "customer_name", customer_name);
+				item_cart.customer_info.customer_name = customer_name;
+				await item_cart.events.get_frm().set_value("customer_name", customer_name);
+				item_cart.$customer_section.find(".customer-display .customer-name").text(customer_name);
+				frappe.show_alert({
+					message: __("Customer name updated successfully."),
+					indicator: "green",
+				});
+			} catch (error) {
+				control.set_value(current_name);
+				frappe.show_alert({
+					message: __("Could not update customer name."),
+					indicator: "red",
+				});
+			} finally {
+				control.$input.prop("disabled", false);
+			}
+		});
 	}
 
 	function patch_pos_cart() {
@@ -597,39 +651,8 @@
 
 		const render_customer_fields = item_cart.prototype.render_customer_fields;
 		item_cart.prototype.render_customer_fields = function () {
-			this.$customer_section
-				.find(".customer-fields-container")
-				.prepend('<div class="customer_name-field"></div>');
 			render_customer_fields.call(this);
-
-			const control = frappe.ui.form.make_control({
-				df: {
-					fieldname: "customer_name",
-					fieldtype: "Data",
-					label: __("Customer Name"),
-					reqd: 1,
-				},
-				parent: this.$customer_section.find(".customer_name-field"),
-				render_input: true,
-			});
-			control.set_value(this.customer_info.customer_name);
-			control.$input.on("blur", async () => {
-				const customer_name = control.get_value().trim();
-				if (!customer_name || customer_name === this.customer_info.customer_name) return;
-
-				await frappe.db.set_value(
-					"Customer",
-					this.customer_info.customer,
-					"customer_name",
-					customer_name
-				);
-				this.customer_info.customer_name = customer_name;
-				await this.events.get_frm().set_value("customer_name", customer_name);
-				frappe.show_alert({
-					message: __("Updated successfully"),
-					indicator: "green",
-				});
-			});
+			make_customer_name_field(this);
 		};
 
 		const render_grand_total = item_cart.prototype.render_grand_total;
@@ -747,6 +770,7 @@
 	}
 
 	function show_additional_info_dialog(payment) {
+		set_shipping_rule_description_hook(payment);
 		payment.make_invoice_field_dialog();
 		if (!payment.addl_dlg) return;
 
@@ -782,14 +806,24 @@
 			await fetch_invoice_fields.call(this);
 			if (this.payment) {
 				this.payment.invoice_fields = this.settings.invoice_fields;
+				set_additional_info_queries(this.payment);
 				mount_cart_additional_info_button(this.payment);
+				set_shipping_rule_description_hook(this.payment);
 			}
+		};
+
+		const init_payments = controller.prototype.init_payments;
+		controller.prototype.init_payments = function () {
+			init_payments.call(this);
+			set_shipping_rule_description_hook(this.payment);
 		};
 
 		frappe.after_ajax(() => {
 			if (window.cur_pos?.payment) {
 				window.cur_pos.payment.invoice_fields = window.cur_pos.settings.invoice_fields;
+				set_additional_info_queries(window.cur_pos.payment);
 				mount_cart_additional_info_button(window.cur_pos.payment);
+				set_shipping_rule_description_hook(window.cur_pos.payment);
 			}
 		});
 
@@ -818,11 +852,15 @@
 		const frm = payment?.events?.get_frm?.();
 		if (!frm?.cscript || frm.cscript.__gr_pos_shipping_rule_description) return;
 
-		const custom_shipping_rule = frm.cscript.custom_shipping_rule;
-		frm.cscript.custom_shipping_rule = async function (...args) {
-			console.log(args)
+		const handler_name =
+			typeof frm.cscript.custom_shipping_rule === "function"
+				? "custom_shipping_rule"
+				: "shipping_rule";
+		const shipping_rule_handler = frm.cscript[handler_name];
+		if (typeof shipping_rule_handler !== "function") return;
 
-			await custom_shipping_rule?.apply(this, args);
+		frm.cscript[handler_name] = async function (...args) {
+			await shipping_rule_handler.apply(this, args);
 			if (!frm.doc.shipping_rule) return;
 
 			const { message: rule } = await frappe.db.get_value(
@@ -830,6 +868,8 @@
 				frm.doc.shipping_rule,
 				["label", "account", "cost_center"]
 			);
+			if (!rule?.label || !rule.account || !rule.cost_center) return;
+
 			const charge = [...(frm.doc.taxes || [])]
 				.reverse()
 				.find(
@@ -849,7 +889,7 @@
 				window.cur_pos?.cart?.update_totals_section(frm);
 			}
 		};
-		frm.cscript.__gr_pos_shipping_rule_description = true;
+		frm.cscript.__gr_pos_shipping_rule_description = handler_name;
 	}
 
 	function render_payment_references() {
@@ -892,13 +932,20 @@
 					html: frappe.utils.icon("close", "xs", "es-icon"),
 				}).appendTo($reference_row);
 
-				$input.on("keydown", (event) => event.stopPropagation());
-				$input.on("change", () => {
-					frappe.model.set_value(
+				$reference_row.on("click mousedown", (event) => event.stopPropagation());
+				$input.on("keydown click mousedown", (event) => event.stopPropagation());
+				$input.on("input", () => {
+					payment.reference_no = $input.val();
+				});
+				$input.on("change blur", async () => {
+					const reference_no = get_value($input.val());
+					$input.val(reference_no);
+					payment.reference_no = reference_no;
+					await frappe.model.set_value(
 						payment.doctype,
 						payment.name,
 						"reference_no",
-						$input.val().trim()
+						reference_no
 					);
 				});
 
@@ -924,6 +971,7 @@
 							"reference_no",
 							""
 						);
+						this.$payment_modes.find(`.${mode}-amount`).empty();
 						this.update_totals_section();
 						this.render_payment_mode_dom();
 					} catch (error) {
@@ -937,7 +985,24 @@
 			});
 	}
 
+	function copy_visible_references_to_payment_rows(payment_component) {
+		const payments = get_doc(payment_component).payments || [];
+		payments.forEach((payment) => {
+			const mode = payment_component.sanitize_mode_of_payment(payment.mode_of_payment);
+			const $input = payment_component.$payment_modes.find(
+				`.mode-of-payment[data-mode="${mode}"] .gr-pos-payment-reference`
+			);
+			if (!$input.length) return;
+
+			const reference_no = get_value($input.val());
+			$input.val(reference_no);
+			payment.reference_no = reference_no;
+		});
+	}
+
 	function validate_bank_payment_references() {
+		// Keep a just-typed reference before the input loses focus.
+		copy_visible_references_to_payment_rows(this);
 		const payments = get_doc(this).payments || [];
 		const payment = payments.find(
 			(payment) =>
