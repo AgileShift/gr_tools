@@ -1,5 +1,4 @@
 {
- "_liked_by": "[\"jkrb7@hotmail.com\"]",
  "absolute_value": 0,
  "align_labels_right": 0,
  "creation": "2024-11-22 05:52:31.712102",
@@ -17,7 +16,7 @@
  "margin_left": 15.0,
  "margin_right": 15.0,
  "margin_top": 15.0,
- "modified": "2026-06-22 09:32:08.912411",
+ "modified": "2026-07-06 18:42:40.141503",
  "modified_by": "Administrator",
  "module": "Grupo Real Tools",
  "name": "Item Label With Price",
@@ -28,7 +27,7 @@
  "print_format_builder_beta": 0,
  "print_format_for": "DocType",
  "print_format_type": "Jinja",
- "raw_commands": "{% set pricing = get_erpnext_price(doc.item_code) %}\n\n^XA\n^CI28\n^PW406\n^LL203\n^LH0,0\n\n^FO0,18\n^A0N,22,22\n^FB406,1,0,C,0\n^FDCLOTHING CENTER^FS\n\n{% if doc.item_code|length >= 15 %}\n^BY1,2,40\n^FO80,24\n^BCN,40,Y,N,N,A\n^FD{{ doc.item_code }}^FS\n{% elif doc.item_code|length >= 10 %}\n^BY2,2,37\n^FO10,24\n^BCN,37,Y,N,N,A\n^FD{{ doc.item_code }}^FS\n{% elif doc.item_code|length >= 7 %}\n^BY2,2,37\n^FO40,24\n^BCN,37,Y,N,N,A\n^FD{{ doc.item_code }}^FS\n{% else %}\n^BY2,2,40\n^FO120,24\n^BCN,40,Y,N,N,A\n^FD{{ doc.item_code }}^FS\n{% endif %}\n\n^FO0,82\n^GB406,5,5^FS\n\n{% if pricing.discount_percent %}\n\n^FO55,100\n^A0N,22,22\n^FDPRECIO:^FS\n\n^FO25,130\n^A0N,34,34\n^FD{{ pricing.formatted_mrp }}^FS\n\n^FO198,86\n^GB5,112,5^FS\n\n^FO258,100\n^A0N,22,22\n^FDOFERTA:^FS\n\n^FO228,130\n^A0N,34,34\n^FD{{ pricing.formatted_price }}^FS\n\n^FO270,170\n^A0N,22,22\n^FD{{ pricing.formatted_discount_percent }}^FS\n\n{% else %}\n\n^FO0,105\n^A0N,24,24\n^FB406,1,0,C,0\n^FDPRECIO:^FS\n\n^FO0,142\n^A0N,38,38\n^FB406,1,0,C,0\n^FD{{ pricing.formatted_price }}^FS\n\n{% endif %}\n\n^PQ1,0,1,Y\n^XZ",
+ "raw_commands": "{% set pricing = get_erpnext_price(doc.item_code) %}\n\n^XA\n^CI28\n^PW406\n^LL203\n^LH0,4\n\n\n^FO0,8\n^A0N,20,20\n^FB406,1,0,C,0\n^FDCLOTHING CENTER^FS\n\n{% if doc.item_code|length >= 15 %}\n^BY1,2,30\n^FO80,34\n^BCN,30,Y,N,N,A\n^FD{{ doc.item_code }}^FS\n{% elif doc.item_code|length >= 10 %}\n^BY2,2,30\n^FO10,34\n^BCN,30,Y,N,N,A\n^FD{{ doc.item_code }}^FS\n{% elif doc.item_code|length >= 7 %}\n^BY2,2,30\n^FO40,34\n^BCN,30,Y,N,N,A\n^FD{{ doc.item_code }}^FS\n{% else %}\n^BY2,2,30\n^FO120,34\n^BCN,30,Y,N,N,A\n^FD{{ doc.item_code }}^FS\n{% endif %}\n\n^FO0,88\n^GB406,5,5^FS\n\n{% if pricing.discount_percent %}\n\n^FO55,100\n^A0N,21,21\n^FDPRECIO:^FS\n\n^FO28,130\n^A0N,33,33\n^FD{{ pricing.formatted_mrp }}^FS\n\n^FO198,87\n^GB5,111,5^FS\n\n^FO258,100\n^A0N,21,21\n^FDOFERTA:^FS\n\n^FO230,130\n^A0N,33,33\n^FD{{ pricing.formatted_price }}^FS\n\n^FO277,170\n^A0N,20,20\n^FD{{ pricing.formatted_discount_percent }}^FS\n\n{% else %}\n\n^FO0,108\n^A0N,23,23\n^FB406,1,0,C,0\n^FDPRECIO:^FS\n\n^FO0,145\n^A0N,39,39\n^FB406,1,0,C,0\n^FD{{ pricing.formatted_price }}^FS\n\n{% endif %}\n\n^PQ1,0,1,Y\n^XZ",
  "raw_printing": 1,
  "show_section_headings": 0,
  "standard": "Yes"
