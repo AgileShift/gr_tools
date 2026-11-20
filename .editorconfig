@@ -12,7 +12,7 @@ trim_trailing_whitespace = true
 [{*.py,*.js,*.vue,*.css,*.scss,*.html}]
 indent_size = 4
 indent_style = tab
-max_line_length = 99
+max_line_length = 110
 
 # JSON files - mostly doctype schema files
 [*.json]
@@ -23,3 +23,4 @@ insert_final_newline = false
 # Markdown configuration
 [*.md]
 trim_trailing_whitespace = false
+max_line_length = 120
