@@ -1,5 +1,5 @@
 import frappe
-from gr_tools.www.products import _get_item_price
+from grupo_real_tools.ecommerce.api.item import _get_item_price
 
 
 @frappe.whitelist(allow_guest=False, methods='GET')

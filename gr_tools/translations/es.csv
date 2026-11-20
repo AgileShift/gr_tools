@@ -1,53 +1,8 @@
-List View,Vista de Lista
-Report View,Vista de Reporte
-
-Add a Filter,Agregar Filtro
-Clear Filters,Borrar Filtros
-Apply Filters,Aplicar Filtros
-
-descending,descendente
-ascending,ascendente
-
-Print,Imprimir
-
-You created this,Usted creó esto
-{0} created this,{0} creó esto
-You last edited this,Usted editó esto por última vez
-{0} last edited this,{0} editó esto por última vez
-You changed the value of {0},Usted cambió el valor de {0}
-{0} changed the value of {1},{0} cambió el valor de {1}
-You changed the values for {0},Usted cambió los valores de {0}
-{0} changed the values for {1},{0} cambió los valores de {1}
-{0} from {1} to {2},{0} de {1} a {2}
-{0} from {1} to {2} in row #{3},{0} de {1} a {2} en la fila #{3}
-removed rows for {0},eliminó filas para {0}
-added rows for {0},agregó filas para {0}
-
-Type a reply / comment,Escriba una respuesta / comentario
-
-Sales Invoice,Factura de Venta
 Sales Order,Orden de Venta
 Purchase Order,Orden de Compra
-Purchase Invoice,Factura de Compra
-
-Payment Entry,Entrada de Pago
-
-Connections,Conexiones
-
-Target Warehouse,Almacén de Destino
-
-Payments,Pagos
-Terms,Términos
-
-Company,Empresa
-Company Tax ID,RUC
-
-Deliveries,Entrega
 
 Address Line 1,Direccion 1
-Address Line 2,Direccion y referencias
+Address Line 2,Direccion y\o referencias
 City/Town,Municipio
-Country,Barrio o Residencial
+County,Barrio o Residencial
 State/Province,Departamento
-
-Amount,Monto

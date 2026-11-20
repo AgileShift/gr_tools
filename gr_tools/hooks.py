@@ -2,7 +2,7 @@ app_name = "gr_tools"
 app_title = "Grupo Real Tools"
 app_publisher = "Agile Shift"
 app_description = "Custom ERPNext configurations, tweaks and Tools"
-app_email = "contacto@gruporeal.org"
+app_email = "dev@gruporeal.org"
 app_license = "agpl-3.0"
 # required_apps = []
 
@@ -39,10 +39,9 @@ page_js = {"point-of-sale": "public/js/page/point_of_sale.js"}
 
 doctype_js = {"Payment Entry": "public/js/doctype/payment_entry.js"}
 
-doctype_list_js = {
-	"Purchase Invoice": "public/js/doctype_list/purchase_invoice_list.js",
-	"Sales Invoice": "public/js/doctype_list/sales_invoice_list.js"
-}
+# doctype_list_js = {
+# 	"Purchase Invoice": "public/js/doctype_list/purchase_invoice_list.js"
+# }
 
 # Svg Icons
 # ------------------

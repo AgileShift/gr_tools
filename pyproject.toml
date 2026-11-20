@@ -14,8 +14,6 @@ dependencies = []
 requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
-[tool.bench.dev-dependencies]
-
 [tool.ruff]
 line-length = 110
 target-version = "py310"
