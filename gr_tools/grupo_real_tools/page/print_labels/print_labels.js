@@ -7,6 +7,8 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 	});
 
 	[
+		{label: __('Company'), fieldtype: 'Link', fieldname: 'company', options: 'Company'},
+		{label: __('Warehouse'), fieldtype: 'Link', fieldname: 'warehouse', options: 'Warehouse'},
 		{label: __('Item Name'), fieldtype: 'Data', fieldname: 'item_name'},
 		{label: __('Item Group'), fieldtype: 'Link', fieldname: 'item_group', options: 'Item Group'},
 		{label: __('Has Variants'), fieldtype: 'Check', fieldname: 'has_variants'},
@@ -14,6 +16,7 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 		{label: __('Purchase Invoice'), fieldtype: 'Link', fieldname: 'purchase_invoice', options: 'Purchase Invoice'},
 		{label: __('Pricing Rule'), fieldtype: 'Link', fieldname: 'pricing_rule', options: 'Pricing Rule'},
 		{label: __('Print Format'), fieldtype: 'Link', fieldname: 'print_format', options: 'Print Format'},
+
 	].forEach((df) => {
 		page[df.fieldname] = page.add_field({
 			label: df.label,
@@ -61,8 +64,12 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 		if (page.pricing_rule.value) {
 			frappe.call({
 				method: 'gr_tools.grupo_real_tools.page.print_labels.print_labels.get_products',
-				args: {pricing_rule: page.pricing_rule.value},
-				debounce: 1000,
+				args: {
+					company: page.company.value,
+					warehouse: page.warehouse.value,
+					pricing_rule: page.pricing_rule.value
+				},
+				debounce: 250,
 			}).then((r) => {
 				render_template({items: r.message});
 			});

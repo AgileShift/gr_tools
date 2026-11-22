@@ -3,7 +3,7 @@ from grupo_real_tools.ecommerce.api.item import _get_item_price
 
 
 def _build_base_query():
-	""" Check www.products.py for the base query."""
+	""" Check ecommerce.item.py for the base query."""
 	return """
 		SELECT
 			item.item_name,
@@ -17,9 +17,8 @@ def _build_base_query():
 
 
 @frappe.whitelist(allow_guest=False)
-def get_products(pricing_rule: str = None):
+def get_products(company: str, warehouse: str, pricing_rule: str = ''):
 	""" Get a list of available products with optional price list filtering. """
-	warehouse = frappe.get_single_value('Stock Settings', 'default_warehouse')
 
 	if pricing_rule:
 		query = _build_base_query() + "WHERE bin.warehouse = %(warehouse)s AND bin.item_code IN %(items)s"
