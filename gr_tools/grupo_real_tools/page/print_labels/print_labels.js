@@ -7,7 +7,7 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 	});
 
 	[
-		{label: __('Company'), fieldtype: 'Link', fieldname: 'company', options: 'Company'},
+		// {label: __('Company'), fieldtype: 'Link', fieldname: 'company', options: 'Company'},
 		{label: __('Warehouse'), fieldtype: 'Link', fieldname: 'warehouse', options: 'Warehouse'},
 		{label: __('Item Name'), fieldtype: 'Data', fieldname: 'item_name'},
 		{label: __('Item Group'), fieldtype: 'Link', fieldname: 'item_group', options: 'Item Group'},
@@ -65,11 +65,11 @@ frappe.pages['print-labels'].on_page_load = function(wrapper) {
 			frappe.call({
 				method: 'gr_tools.grupo_real_tools.page.print_labels.print_labels.get_products',
 				args: {
-					company: page.company.value,
+					// company: page.company.value,
 					warehouse: page.warehouse.value,
 					pricing_rule: page.pricing_rule.value
 				},
-				debounce: 250,
+				debounce: 150,
 			}).then((r) => {
 				render_template({items: r.message});
 			});

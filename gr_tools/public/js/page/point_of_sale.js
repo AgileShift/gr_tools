@@ -545,6 +545,47 @@
 		});
 	}
 
+	function patch_pos_order_summary() {
+		const summary = window.erpnext?.PointOfSale?.PastOrderSummary?.prototype;
+		if (!summary) return false;
+		if (summary.__gr_delivery_label_patched) return true;
+
+		const load_summary_of = summary.load_summary_of;
+		summary.load_summary_of = function (doc, after_submission) {
+			load_summary_of.call(this, doc, after_submission);
+			const { doctype, name } = doc;
+			const $print_button = $("<button>", {
+				type: "button",
+				class: "btn btn-default btn-sm icon-btn",
+				title: __("Print"),
+				"aria-label": __("Print"),
+				html: frappe.utils.icon("printer", "sm"),
+			}).on("click", () => {
+				if (!doc.customer_address && !doc.shipping_address_name) {
+					frappe.msgprint(__("This invoice has no customer address or shipping address."));
+					return;
+				}
+
+				frappe.prompt({
+					label: __("Print Format"),
+					fieldname: "format",
+					fieldtype: "Link",
+					options: "Print Format",
+					reqd: 1,
+					get_query: () => ({ filters: { doc_type: doctype, disabled: 0 } }),
+				}, ({ format }) => {
+					const params = new URLSearchParams({ doctype, name, format, no_letterhead: "1" });
+					window.open(`/printview?${params}`, "_blank", "noopener");
+				}, __("Print Format"), __("Preview"));
+			});
+			const $anchor = this.$summary_btns.find(".print-btn, .edit-btn").first();
+			if ($anchor.length) $print_button.insertAfter($anchor);
+			else $print_button.appendTo(this.$summary_btns);
+		};
+		summary.__gr_delivery_label_patched = true;
+		return true;
+	}
+
 	function mount_charge_remove_buttons(item_cart, taxes) {
 		const rendered_taxes = (taxes || []).filter((row) =>
 			flt(row.tax_amount_after_discount_amount)
@@ -1073,12 +1114,14 @@
 		const item_details_patched = patch_pos_item_details();
 		const item_selector_patched = patch_pos_item_selector();
 		const controller_patched = patch_pos_controller();
+		const summary_patched = patch_pos_order_summary();
 		if (
 			(cart_patched &&
 				payment_patched &&
 				item_details_patched &&
 				item_selector_patched &&
-				controller_patched) ||
+				controller_patched &&
+				summary_patched) ||
 			attempt >= 80
 		) {
 			return;

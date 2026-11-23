@@ -17,7 +17,7 @@ def _build_base_query():
 
 
 @frappe.whitelist(allow_guest=False)
-def get_products(company: str, warehouse: str, pricing_rule: str = ''):
+def get_products(warehouse: str, pricing_rule: str = ''):
 	""" Get a list of available products with optional price list filtering. """
 
 	if pricing_rule:
