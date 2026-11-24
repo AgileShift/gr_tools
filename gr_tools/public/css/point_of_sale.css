@@ -143,11 +143,41 @@
 	overflow-wrap: anywhere;
 }
 
-.gr-pos-cart-label {
+.point-of-sale-app .cart-label:has(> .gr-pos-capture-cart) {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--margin-sm);
+}
+
+.point-of-sale-app .cart-item-wrapper > .item-name-desc > .item-name {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.point-of-sale-app .gr-pos-remove-item {
+	flex: 0 0 24px;
+	width: 24px;
+	height: 24px;
+	margin-inline-start: var(--margin-xs);
+}
+
+.point-of-sale-app .customer-cart-container:not(.gr-pos-cart-locked)
+	.cart-header:has(+ .cart-items-section .gr-pos-remove-item) {
+	padding-inline-end: calc(24px + var(--margin-xs));
+}
+
+.point-of-sale-app .gr-pos-cart-locked .gr-pos-remove-item {
+	display: none;
+}
+
+.point-of-sale-app :is(.gr-pos-remove-item, .gr-pos-remove-charge) {
+	color: var(--ink-red-8);
+	background-color: var(--surface-red-2);
+}
+
+.point-of-sale-app :is(.gr-pos-remove-item, .gr-pos-remove-charge):hover:not(:disabled) {
+	background-color: var(--surface-red-3);
 }
 
 .gr-pos-cart-preview {
@@ -273,14 +303,14 @@
 	margin-top: var(--padding-md);
 }
 
-.item-details-container .gr-pos-primary-field {
+.item-details-container > .form-container :is(.qty-control, .rate-control, .discount_percentage-control) {
 	padding: var(--padding-sm);
 	border: 1px solid color-mix(in srgb, var(--blue-500) 28%, var(--border-color));
 	border-radius: var(--border-radius-md);
 	background: color-mix(in srgb, var(--blue-500) 4%, var(--card-bg));
 }
 
-.item-details-container .gr-pos-stock-field {
+.item-details-container > .form-container .actual_qty-control {
 	padding: var(--padding-sm);
 	border: 1px solid color-mix(in srgb, var(--green-500) 35%, var(--border-color));
 	border-radius: var(--border-radius-md);

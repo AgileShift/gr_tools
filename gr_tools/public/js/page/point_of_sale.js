@@ -1,7 +1,6 @@
 (() => {
 	const CART_PATCH_FLAG = "__gr_pos_alt_total_patched";
 	const PAYMENT_PATCH_FLAG = "__gr_pos_additional_info_queries_patched";
-	const ITEM_DETAILS_PATCH_FLAG = "__gr_pos_item_details_patched";
 	const TARGET = { USD: "NIO", NIO: "USD" };
 	const BRAND_PINK = "#f7c6c8";
 	const exchange_rates = new Map();
@@ -513,13 +512,25 @@
 		dialog.show();
 	}
 
+	function update_cart_action_buttons(cart) {
+		cart.$component.find(".gr-pos-capture-cart, .gr-pos-save-draft")
+			.not('[aria-busy="true"]')
+			.prop("disabled", !get_doc(cart).items?.length);
+	}
+
+	function mount_cart_action_buttons(cart) {
+		if (!cart?.$component) return;
+		mount_cart_capture_button(cart);
+		mount_save_draft_button(cart);
+		update_cart_action_buttons(cart);
+	}
+
 	function mount_cart_capture_button(item_cart) {
 		const $label = item_cart?.$component?.find(".cart-label");
 		if (!$label?.length || $label.find(".gr-pos-capture-cart").length) return;
 
-		$label.addClass("gr-pos-cart-label");
 		const $button = $("<button>", {
-			class: "btn btn-default icon-btn gr-pos-capture-cart",
+			class: "btn btn-primary icon-btn gr-pos-capture-cart",
 			type: "button",
 			title: __("Download cart image"),
 			html: frappe.utils.icon("camera", "sm"),
@@ -528,7 +539,7 @@
 		$button.on("click", async (event) => {
 			event.preventDefault();
 			event.stopPropagation();
-			$button.prop("disabled", true);
+			$button.attr("aria-busy", "true").prop("disabled", true);
 			try {
 				const doc = get_doc(item_cart);
 				const blob = await make_cart_image(item_cart);
@@ -540,7 +551,8 @@
 					indicator: "red",
 				});
 			} finally {
-				$button.prop("disabled", false);
+				$button.removeAttr("aria-busy");
+				update_cart_action_buttons(item_cart);
 			}
 		});
 	}
@@ -624,6 +636,41 @@
 		});
 	}
 
+	function mount_cart_item_remove_button(cart, row) {
+		const $button = $("<button>", {
+			type: "button",
+			class: "btn btn-default btn-xs gr-pos-remove-item",
+			title: __("Remove"),
+			"aria-label": `${__("Remove")}: ${row.item_name}`,
+			html: frappe.utils.icon("close", "xs", "es-icon"),
+		}).appendTo(cart.get_cart_item(row));
+
+		$button.on("click", async (event) => {
+			event.stopPropagation();
+			const pos = window.cur_pos;
+			const frm = cart.events.get_frm();
+			if (pos?.cart !== cart || frm.doc.docstatus !== 0 ||
+				cart.$component.hasClass("gr-pos-cart-locked") || !cart.get_item_from_frm(row)) return;
+
+			$button.prop("disabled", true);
+			frappe.dom.freeze();
+			try {
+				await frappe.model.set_value(row.doctype, row.name, "qty", 0);
+				frappe.model.clear_doc(row.doctype, row.name);
+				frm.dirty();
+				pos.update_cart_html(row, true);
+				if (pos.item_details.compare_with_current_item(row)) {
+					await pos.item_details.toggle_item_details_section(null);
+				}
+			} catch {
+				frappe.show_alert({ message: __("Something went wrong"), indicator: "red" });
+			} finally {
+				frappe.dom.unfreeze();
+				$button.prop("disabled", false);
+			}
+		});
+	}
+
 	function make_customer_name_field(item_cart) {
 		const $customer_fields = item_cart.$customer_section.find(".customer-fields-container");
 		if (!$customer_fields.length) return;
@@ -687,7 +734,22 @@
 		const init_component = item_cart.prototype.init_component;
 		item_cart.prototype.init_component = function () {
 			init_component.call(this);
-			mount_cart_capture_button(this);
+			mount_cart_action_buttons(this);
+		};
+
+		const toggle_checkout_btn = item_cart.prototype.toggle_checkout_btn;
+		item_cart.prototype.toggle_checkout_btn = function (show_checkout) {
+			toggle_checkout_btn.call(this, show_checkout);
+			this.$component.find(".gr-pos-save-draft").toggle(show_checkout);
+			this.$component.toggleClass("gr-pos-cart-locked", !show_checkout);
+		};
+
+		const render_cart_item = item_cart.prototype.render_cart_item;
+		item_cart.prototype.render_cart_item = function (row, $cart_item) {
+			render_cart_item.call(this, { ...row, description: "" }, $cart_item);
+			if (get_doc(this).docstatus === 0) {
+				mount_cart_item_remove_button(this, row);
+			}
 		};
 
 		const render_customer_fields = item_cart.prototype.render_customer_fields;
@@ -699,6 +761,7 @@
 		const render_grand_total = item_cart.prototype.render_grand_total;
 		item_cart.prototype.render_grand_total = function (value) {
 			render_grand_total.call(this, value);
+			update_cart_action_buttons(this);
 			render_alt_total.call(this, value);
 		};
 
@@ -718,32 +781,41 @@
 		};
 
 		item_cart.prototype[CART_PATCH_FLAG] = true;
-		mount_cart_capture_button(window.cur_pos?.cart);
+		mount_cart_action_buttons(window.cur_pos?.cart);
 		return true;
 	}
 
-	function style_item_detail_fields(item_details) {
-		item_details.$form_container.find(".actual_qty-control").addClass("gr-pos-stock-field");
-		["qty", "rate", "discount_percentage"].forEach((fieldname) => {
-			item_details.$form_container
-				.find(`.${fieldname}-control`)
-				.addClass("gr-pos-primary-field");
+	function mount_save_draft_button(cart) {
+		const $checkout = cart?.$totals_section?.find(".checkout-btn");
+		if (!$checkout?.length || cart.$component.find(".gr-pos-save-draft").length) return;
+
+		const $button = $("<button>", {
+			type: "button",
+			class: "btn btn-default btn-sm mb-2 gr-pos-save-draft",
+			text: __("Save as Draft"),
+		}).insertBefore($checkout);
+
+		$button.on("click", async () => {
+			const frm = cart.events.get_frm();
+			if (!frm?.doc?.items?.length || !frm.doc.customer || frm.doc.docstatus !== 0) {
+				frappe.msgprint(__("Select a customer and add an item before saving a draft."));
+				return;
+			}
+			$button.attr("aria-busy", "true").prop("disabled", true);
+			try {
+				if (frm.is_new() || frm.is_dirty()) {
+					let failed = false;
+					await frm.save(null, null, null, () => { failed = true; });
+					if (failed || frm.is_new() || frm.is_dirty()) return;
+				}
+				frappe.show_alert({ message: __("Draft saved · {0}", [frm.doc.name]), indicator: "green" });
+			} catch {
+				frappe.show_alert({ message: __("Could not save the draft."), indicator: "red" });
+			} finally {
+				$button.removeAttr("aria-busy");
+				update_cart_action_buttons(cart);
+			}
 		});
-	}
-
-	function patch_pos_item_details() {
-		const item_details = window.erpnext?.PointOfSale?.ItemDetails;
-		if (!item_details) return false;
-		if (item_details.prototype[ITEM_DETAILS_PATCH_FLAG]) return true;
-
-		const render_form = item_details.prototype.render_form;
-		item_details.prototype.render_form = function (item) {
-			render_form.call(this, item);
-			style_item_detail_fields(this);
-		};
-
-		item_details.prototype[ITEM_DETAILS_PATCH_FLAG] = true;
-		return true;
 	}
 
 	function get_customer_address_query(payment) {
@@ -1111,14 +1183,12 @@
 	function wait_for_pos(attempt = 0) {
 		const cart_patched = patch_pos_cart();
 		const payment_patched = patch_pos_payment();
-		const item_details_patched = patch_pos_item_details();
 		const item_selector_patched = patch_pos_item_selector();
 		const controller_patched = patch_pos_controller();
 		const summary_patched = patch_pos_order_summary();
 		if (
 			(cart_patched &&
 				payment_patched &&
-				item_details_patched &&
 				item_selector_patched &&
 				controller_patched &&
 				summary_patched) ||
