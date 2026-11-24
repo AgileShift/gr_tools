@@ -1,3 +1,21 @@
+.point-of-sale-app > .items-selector > .filter-section {
+	gap: var(--margin-xs) var(--margin-sm);
+}
+
+.point-of-sale-app > .items-selector > .filter-section > .label {
+	grid-column: 1 / -1;
+}
+
+.point-of-sale-app > .items-selector > .filter-section > .search-field {
+	grid-column: span 9;
+	min-width: 0;
+	margin: 0;
+}
+
+.items-selector > .filter-section > .search-field input {
+	min-height: 36px;
+}
+
 .gr-pos-alt-total {
 	display: block !important;
 }
@@ -109,7 +127,8 @@
 	> .items-container.show-item-image
 	> .item-wrapper
 	> .item-detail {
-	height: 4.5rem;
+	height: auto;
+	padding-block: var(--padding-xs);
 }
 
 .point-of-sale-app
@@ -118,13 +137,10 @@
 	> .item-wrapper
 	> .item-detail
 	> .item-name {
-	display: -webkit-box;
-	overflow: hidden;
-	max-height: 2.5em;
+	display: block;
 	line-height: 1.25;
 	white-space: normal;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
+	overflow-wrap: anywhere;
 }
 
 .gr-pos-cart-label {
