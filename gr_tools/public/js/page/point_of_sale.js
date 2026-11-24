@@ -581,10 +581,9 @@
 				frappe.prompt({
 					label: __("Print Format"),
 					fieldname: "format",
-					fieldtype: "Link",
-					options: "Print Format",
+					fieldtype: "Select",
+					options: frappe.meta.get_print_formats(doctype).filter((format) => format !== "Standard"),
 					reqd: 1,
-					get_query: () => ({ filters: { doc_type: doctype, disabled: 0 } }),
 				}, ({ format }) => {
 					const params = new URLSearchParams({ doctype, name, format, no_letterhead: "1" });
 					window.open(`/printview?${params}`, "_blank", "noopener");
