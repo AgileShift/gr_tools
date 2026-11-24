@@ -917,7 +917,8 @@
 					await frm.save(null, null, null, () => { failed = true; });
 					if (failed || frm.is_new() || frm.is_dirty()) return;
 				}
-				frappe.show_alert({ message: __("Draft saved · {0}", [frm.doc.name]), indicator: "green" });
+				const message = __("{0} saved successfully", [__("Draft")]);
+				frappe.show_alert({ message: `${message} · ${frm.doc.name}`, indicator: "green" });
 			} catch {
 				frappe.show_alert({ message: __("Could not save the draft."), indicator: "red" });
 			} finally {

@@ -171,11 +171,15 @@
 	overflow-wrap: anywhere;
 }
 
-.point-of-sale-app .gr-pos-remove-item {
+.point-of-sale-app .btn.gr-pos-remove-item {
+	display: inline-grid;
+	place-items: center;
 	flex: 0 0 24px;
 	width: 24px;
 	height: 24px;
+	padding: 1px;
 	margin-inline-start: var(--margin-xs);
+	background-clip: content-box;
 }
 
 .point-of-sale-app .customer-cart-container:not(.gr-pos-cart-locked)
