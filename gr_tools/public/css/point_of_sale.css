@@ -1,3 +1,19 @@
+.point-of-sale-app .customer-details > .customer-display,
+.point-of-sale-app .customer-display > .gr-pos-customer-actions {
+	/* The native POS gives both the card and the reset control a pointer. */
+	cursor: default !important;
+}
+
+.point-of-sale-app .gr-pos-customer-actions > button {
+	cursor: pointer;
+}
+
+.point-of-sale-app .customer-details > .customer-display > .gr-pos-customer-actions {
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--margin-xs);
+}
+
 .point-of-sale-app > .items-selector > .filter-section {
 	gap: var(--margin-xs) var(--margin-sm);
 }
@@ -315,6 +331,67 @@
 	border: 1px solid color-mix(in srgb, var(--green-500) 35%, var(--border-color));
 	border-radius: var(--border-radius-md);
 	background: color-mix(in srgb, var(--green-500) 6%, var(--card-bg));
+}
+
+.gr-pos-addresses {
+	container: gr-pos-addresses / inline-size;
+	position: relative;
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: var(--margin-xs);
+	padding-bottom: var(--margin-md);
+	overflow-wrap: anywhere;
+}
+
+.gr-pos-addresses::after {
+	content: "";
+	position: absolute;
+	inset: auto 20% 0;
+	height: 1px;
+	background: var(--border-color);
+}
+
+.gr-pos-addresses > details > summary.label {
+	display: list-item;
+}
+
+.gr-pos-addresses details,
+.gr-pos-addresses details::details-content {
+	display: contents;
+}
+
+.gr-pos-addresses details:not([open]) .gr-pos-address-list {
+	display: none;
+}
+
+.gr-pos-address-list {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	grid-column: 1 / -1;
+	grid-row: 2;
+	gap: var(--margin-sm);
+}
+
+.gr-pos-address-list > .address-box {
+	margin-bottom: 0;
+}
+
+.gr-pos-address-list .address-box .box-header {
+	margin-bottom: var(--margin-xs);
+	padding-inline-end: 0;
+	overflow-wrap: anywhere;
+}
+
+@container gr-pos-addresses (min-width: 32rem) {
+	.gr-pos-address-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.gr-pos-addresses > .frappe-control {
+	grid-column: 2;
+	grid-row: 1;
 }
 
 @media (max-width: 768px) {

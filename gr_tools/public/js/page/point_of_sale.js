@@ -711,7 +711,7 @@
 				await item_cart.events.get_frm().set_value("customer_name", customer_name);
 				item_cart.$customer_section.find(".customer-display .customer-name").text(customer_name);
 				frappe.show_alert({
-					message: __("Customer name updated successfully."),
+					message: __("{0} updated", [__("Customer Name")]),
 					indicator: "green",
 				});
 			} catch (error) {
@@ -724,6 +724,94 @@
 				control.$input.prop("disabled", false);
 			}
 		});
+	}
+
+	function show_customer_addresses(cart) {
+		const customer = get_doc(cart).customer;
+		const $transactions = cart.$customer_section.find(".transactions-section");
+		if (!customer || !$transactions.length || !frappe.model.can_read("Address")) return;
+
+		$transactions.prev(".gr-pos-addresses").remove();
+		const $panel = $('<div class="gr-pos-addresses mt-3">').insertBefore($transactions);
+		const $section = $("<details>").appendTo($panel);
+		$('<summary class="label">').text(__("Addresses")).appendTo($section);
+		const $list = $('<div class="gr-pos-address-list frappe-control mt-2">').appendTo($section);
+		async function refresh() {
+			const { docs } = await frappe.call({
+				method: "frappe.desk.form.load.getdoc",
+				args: { doctype: "Customer", name: customer },
+			});
+			const customer_doc = docs?.[0];
+			const addresses = (customer_doc?.__onload?.addr_list || []).filter(a => !a.disabled);
+			$list.empty();
+			for (const address of addresses) {
+				const $card = $('<div class="address-box">').appendTo($list);
+				const $header = $('<div class="box-header flex items-center flex-wrap gap-2">').appendTo($card);
+				$('<span class="text-base-semibold text-ink-gray-8">')
+					.text(address.address_title || address.name).appendTo($header);
+				if (address.name === customer_doc.customer_primary_address) {
+					frappe.ui.badge({ label: __("Primary"), size: "sm" }).appendTo($header);
+				}
+				if (cint(address.is_shipping_address)) {
+					frappe.ui.badge({ label: __("Preferred Shipping Address"), size: "sm" }).appendTo($header);
+				}
+				const { address_type } = address;
+				if (address_type && !["Billing", "Shipping"].includes(address_type)) {
+					frappe.ui.badge({ label: __(address_type), size: "sm" }).appendTo($header);
+				}
+				$('<div class="address-display text-ink-gray-7">').html(address.display || "").appendTo($card);
+			}
+			if (!addresses.length) $list.text(__("No records found"));
+		}
+		$section.on("toggle", () => {
+			if ($section.prop("open")) refresh();
+		});
+		if (frappe.model.can_create("Address")) {
+			frappe.ui.form.make_control({
+				parent: $panel,
+				df: {
+					fieldtype: "Button", label: __("New Address"),
+					click: async () => {
+						await frappe.model.with_doctype("Address");
+						const doc = frappe.model.get_new_doc("Address");
+						const { links, ...defaults } = get_customer_address_route_options(cart);
+						Object.assign(doc, defaults);
+						Object.assign(frappe.model.add_child(doc, "Dynamic Link", "links"), links[0]);
+						frappe.ui.form.make_quick_entry("Address", refresh, null, doc, true);
+					},
+				},
+				render_input: true,
+			});
+		}
+	}
+
+	function show_customer_actions(cart) {
+		const $actions = cart?.$customer_section?.find(".reset-customer-btn");
+		if (!$actions?.length || $actions.hasClass("gr-pos-customer-actions")) return;
+
+		const $card = $actions.closest(".customer-display");
+		$card.on("click", (event) => {
+			if (!$(event.target).closest("button").length) event.stopPropagation();
+		});
+		if (!cart.customer_info.email_id && !cart.customer_info.mobile_no) {
+			$card.find(".customer-desc").empty();
+		}
+
+		// ERPNext hides this container and handles customer selection during checkout transitions.
+		$actions.empty().addClass("gr-pos-customer-actions");
+		$("<button>", {
+			type: "button",
+			class: "btn btn-default btn-sm",
+			text: __("Edit {0}", [__("Customer")]),
+		}).appendTo($actions).on("click", (event) => {
+			event.stopPropagation();
+			cart.toggle_customer_info(true);
+		});
+		$("<button>", {
+			type: "button",
+			class: "btn btn-primary btn-sm",
+			text: __("Select a Customer"),
+		}).appendTo($actions);
 	}
 
 	function patch_pos_cart() {
@@ -755,7 +843,28 @@
 		const render_customer_fields = item_cart.prototype.render_customer_fields;
 		item_cart.prototype.render_customer_fields = function () {
 			render_customer_fields.call(this);
+			// Accounts Settings controls this section on both Sales Invoice and POS Invoice.
+			const loyalty_section = frappe.meta.get_docfield(get_doc(this).doctype, "loyalty_points_redemption");
+			if (cint(loyalty_section?.hidden)) {
+				this.$customer_section.find(".loyalty_program-field, .loyalty_points-field").hide();
+			}
+			this.$customer_section.find(".customer-display").off("click.grPosDetails")
+				.on("click.grPosDetails", (event) => event.stopPropagation());
+			const $header = this.$customer_section.find(".customer-details > .header");
+			$header.children(".label").text(__("Edit {0}", [__("Customer")]));
+			$header.children("div.close-details-btn").replaceWith($("<button>", {
+				type: "button",
+				class: "btn btn-primary btn-sm close-details-btn",
+				text: __("Go back"),
+			}));
 			make_customer_name_field(this);
+			show_customer_addresses(this);
+		};
+
+		const update_customer_section = item_cart.prototype.update_customer_section;
+		item_cart.prototype.update_customer_section = function () {
+			update_customer_section.call(this);
+			show_customer_actions(this);
 		};
 
 		const render_grand_total = item_cart.prototype.render_grand_total;
@@ -782,6 +891,7 @@
 
 		item_cart.prototype[CART_PATCH_FLAG] = true;
 		mount_cart_action_buttons(window.cur_pos?.cart);
+		show_customer_actions(window.cur_pos?.cart);
 		return true;
 	}
 
@@ -869,6 +979,29 @@
 		});
 	}
 
+	function link_shipping_address_preview(dialog) {
+		const link = dialog?.fields_dict.shipping_address_name;
+		const preview = dialog?.fields_dict.shipping_address;
+		if (!preview || link?.df.fieldtype !== "Link" || link.df.options !== "Address") return;
+
+		let revision = 0;
+		link.df.change = async function () {
+			const selection = ++revision;
+			const address = link.get_value();
+			dialog.get_primary_btn().prop("disabled", Boolean(address));
+			await preview.set_value("");
+			if (!address || selection !== revision) return;
+
+			const { message } = await frappe.call({
+				method: "frappe.contacts.doctype.address.address.get_address_display",
+				args: { address_dict: address },
+			});
+			if (selection !== revision || link.get_value() !== address) return;
+			await preview.set_value(message || "");
+			if (selection === revision) dialog.get_primary_btn().prop("disabled", false);
+		};
+	}
+
 	function sync_additional_info_dialog(payment) {
 		const doc = get_doc(payment);
 		(payment.addl_dlg?.fields_list || []).forEach((control) => {
@@ -893,7 +1026,6 @@
 
 	function mount_cart_additional_info_button(payment) {
 		if (!payment?.invoice_fields?.length) return;
-
 		const $totals = payment.wrapper.find(".customer-cart-container .cart-totals-section");
 		if (!$totals.length || $totals.find(".gr-pos-cart-additional-info").length) return;
 
@@ -904,7 +1036,6 @@
 				"Update Additional Information"
 			)}</span>`,
 		});
-
 		$button.on("click", () => show_additional_info_dialog(payment));
 		$totals.find(".add-discount-wrapper").before($button);
 	}
@@ -1165,6 +1296,7 @@
 				return;
 			}
 			make_invoice_field_dialog.call(this);
+			link_shipping_address_preview(this.addl_dlg);
 		};
 
 		const validate_reqd_invoice_fields = payment.prototype.validate_reqd_invoice_fields;
