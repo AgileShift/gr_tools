@@ -581,8 +581,10 @@
 				frappe.prompt({
 					label: __("Print Format"),
 					fieldname: "format",
-					fieldtype: "Select",
-					options: frappe.meta.get_print_formats(doctype).filter((format) => format !== "Standard"),
+					fieldtype: "Link",
+					options: "Print Format",
+					only_select: true,
+					get_query: () => ({ filters: { doc_type: doctype, disabled: 0 } }),
 					reqd: 1,
 				}, ({ format }) => {
 					const params = new URLSearchParams({ doctype, name, format, no_letterhead: "1" });
@@ -1044,6 +1046,14 @@
 		const controller = window.erpnext?.PointOfSale?.Controller;
 		if (!controller) return false;
 		if (controller.prototype.__gr_pos_additional_fields_patched) return true;
+
+		const toggle_recent_order_list = controller.prototype.toggle_recent_order_list;
+		controller.prototype.toggle_recent_order_list = function (show) {
+			toggle_recent_order_list.call(this, show);
+			if (show && this.frm.doc.docstatus === 0) {
+				this.page.btn_secondary.text(__("Back to POS"));
+			}
+		};
 
 		const fetch_invoice_fields = controller.prototype.fetch_invoice_fields;
 		controller.prototype.fetch_invoice_fields = async function () {

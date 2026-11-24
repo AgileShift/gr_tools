@@ -66,11 +66,15 @@ The [page script](gr_tools/public/js/page/point_of_sale.js) extends ERPNext's Po
 - In **Additional Information**, the shipping address preview updates when the selected address changes, provided
   both `shipping_address_name` (an Address link) and `shipping_address` are configured in POS Settings.
 
-### Order Printing
+### Recent Orders and Printing
 
-The order summary's extra print button opens a selector populated by Frappe for the invoice type, excluding
-**Standard**. It opens the chosen format in print preview without a letterhead. If the invoice has neither
-a customer address nor a shipping address, the button explains that instead of opening the selector.
+When an invoice is in progress, the recent-orders toolbar shows **Back to POS** for returning to the current
+cart. It uses the standard ERPNext action and does not create or save an invoice.
+
+The order summary's extra print button opens a searchable Frappe Link field for enabled formats of the invoice type.
+It opens the chosen format in print preview without a letterhead.
+If the invoice has neither a customer address nor a shipping address, the button explains that instead of
+opening the selector.
 
 ## Technical documentation
 
