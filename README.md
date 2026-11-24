@@ -1,48 +1,86 @@
 # Grupo Real Tools
 
-## Introduction
+Custom configurations, tweaks, and tools for Frappe and ERPNext.
 
-This document outlines our custom configuration strategy for our Frappe sites.  
-We have adopted a unique approach that diverges from the standard use of **fixtures** and direct application of customizations through **hooks**.  
+## Scope
 
-Instead, we opt for a custom JSON loaded as a type of fixture using the **_after_migrate_ hook**.
+The app supports configuration for multiple Frappe sites. The strategy documented here covers settings shared across
+sites and settings specific to individual sites.
 
-___
+## Features
 
-### Why We Do Not Use Standard Fixtures
+- Shared and site-specific settings in custom JSON.
+- Conditional application of configuration during migration through the documented `after_migrate` flow.
+- ERPNext Point of Sale customizations for the product catalog, customer details, cart, and order printing.
 
-Using fixtures in Frappe is a common practice for replicating configurations and data across multiple sites.
-However, this approach poses limitations when managing site-specific configurations in a multitenant environment.
-Standard fixtures overwrite existing configurations, potentially leading to the loss of critical site-specific customizations.
-Moreover, fixtures do not offer a straightforward way to manage subtle differences between sites without replicating multiple versions of the same fixture.
+## Requirements
 
-### Why We Do Not Apply Customizations Directly Through Hooks
+As declared in [pyproject.toml](pyproject.toml):
 
-Applying customizations directly through individual hooks for each setting is another option.
-However, this method can become cumbersome and difficult to maintain as the number of customizations grows.
-Each customization would require its hook code, increasing the system's complexity and making cohesive management of configurations across multiple environments challenging.
+- Python 3.14 or later.
+- Frappe `>=16.60.0,<17.0.0`.
+- ERPNext `>=16.60.0,<17.0.0`.
 
-___
+## Configuration
 
-## Our Solution: Custom JSON and after_migrate Hook
+### Why we chose custom JSON
 
-We decided to adopt a hybrid approach that combines the flexibility of fixtures with the precision of custom hooks.  
-This approach involves creating a custom JSON that contains both general configurations applicable to all sites and site-specific configurations.  
-We use the **after_migrate** hook to conditionally load and apply these configurations based on the current site.
+Standard fixtures are a common way to replicate configurations and data across sites. The design rationale for this
+app was that fixtures can overwrite site-specific settings and make small variations harder to maintain without
+multiple versions of the same fixture.
 
-### Advantages of Our Approach
+Applying each customization through a separate hook was also considered. That approach would require more hook code
+as settings grew, making it harder to manage configuration across environments.
 
-1. **Flexibility**: Our custom JSON allows for easy adaptation to the specific needs of each site without compromising general configurations.
-2. **Maintainability**: Centralizing configurations in a single JSON file facilitates updates and maintenance, reducing complexity.
-3. **Efficient Automation**: Using the **after_migrate** hook to apply configurations ensures that each site is correctly configured automatically after each migration, minimizing the need for manual interventions.
+### Documented migration flow
 
-### How It Works
+1. Prepare custom JSON with settings shared across sites and settings specific to individual sites.
+2. Register an `after_migrate` method in [hooks.py](gr_tools/hooks.py) to read the JSON after migration.
+3. The method identifies the current site, selects its configuration, and applies it through Frappe's API.
 
-1. **Preparation of Custom JSON**: We create a JSON file detailing the general and site-specific configurations.
-2. **Use of after_migrate Hook**: In hooks.py, we specify a method to run after migration to read the custom JSON and apply the corresponding configurations to the current site.
-3. **Conditional Application of Configurations**: The method identifies the current site, extracts the relevant configurations from the custom JSON, and applies them using Frappe's API.
+The design aims to centralize configuration, preserve site-specific settings, and reduce manual work after migration.
 
-**Conclusion**
+## Point of Sale
 
-Our decision to use a custom JSON loaded through the **after_migrate** hook represents a balance between the need for customization and operational efficiency.  
-This approach allows us to manage configurations flexibly and keep our Frappe sites optimized and aligned with the specific requirements of each environment.
+The [page script](gr_tools/public/js/page/point_of_sale.js) extends ERPNext's Point of Sale page and loads its
+[stylesheet](gr_tools/public/css/point_of_sale.css). These changes do not alter the standard invoice form.
+
+### Catalog and Cart
+
+- The product search is wider, and names wrap on product cards instead of being limited to two lines.
+- Cart rows show the full item name without showing or truncating the invoice line's description.
+- Each editable cart row has a quick remove button. It removes that row from the current cart without saving
+  the invoice, and it is hidden during payment. The item and shipping charge remove buttons use the same color treatment.
+- The cart camera and **Save as Draft** are unavailable on an empty cart. Saving a draft uses the current invoice
+  form without submitting it or opening the payment screen.
+
+### Customer and Addresses
+
+- **Edit Customer** opens the customer details, and **Select a Customer** changes the customer on the sale.
+  The loyalty fields are hidden when the invoice metadata hides the loyalty redemption section.
+- The customer details show saved addresses using Frappe's address format. The primary badge uses the customer's
+  primary-address link; the preferred shipping badge uses the address's own flag. Other address types are
+  shown except **Billing** and **Shipping**.
+- **New Address** is available when the user can create addresses. It opens Frappe's quick-entry form, links the
+  new address to the customer, and refreshes the list without changing the delivery address on the sale.
+- In **Additional Information**, the shipping address preview updates when the selected address changes, provided
+  both `shipping_address_name` (an Address link) and `shipping_address` are configured in POS Settings.
+
+### Order Printing
+
+The order summary's extra print button opens a selector populated by Frappe for the invoice type, excluding
+**Standard**. It opens the chosen format in print preview without a letterhead. If the invoice has neither
+a customer address nor a shipping address, the button explains that instead of opening the selector.
+
+## Technical documentation
+
+- [Frappe hook registration](gr_tools/hooks.py)
+- [Configuration synchronization](gr_tools/grupo_real_tools/sync.py)
+
+## Contributing
+
+Read [AGENTS.md](AGENTS.md) for repository instructions and verification requirements.
+
+## License
+
+AGPL 3.0, as declared in [hooks.py](gr_tools/hooks.py).
