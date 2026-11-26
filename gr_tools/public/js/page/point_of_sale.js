@@ -1047,14 +1047,6 @@
 		if (!controller) return false;
 		if (controller.prototype.__gr_pos_additional_fields_patched) return true;
 
-		const toggle_recent_order_list = controller.prototype.toggle_recent_order_list;
-		controller.prototype.toggle_recent_order_list = function (show) {
-			toggle_recent_order_list.call(this, show);
-			if (show && this.frm.doc.docstatus === 0) {
-				this.page.btn_secondary.text(__("Back to POS"));
-			}
-		};
-
 		const fetch_invoice_fields = controller.prototype.fetch_invoice_fields;
 		controller.prototype.fetch_invoice_fields = async function () {
 			await fetch_invoice_fields.call(this);
