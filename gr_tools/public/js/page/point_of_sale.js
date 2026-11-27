@@ -267,21 +267,22 @@
 		canvas.width = width;
 		context.font = "700 25px Arial, sans-serif";
 		const item_rows = items.map((item) => {
-			const lines = wrap_canvas_text(
-				context,
-				item.item_name || item.item_code,
-				product_width
-			);
-			return { item, lines, height: Math.max(150, lines.length * line_height + 74) };
+			const name = item.item_name || item.item_code;
+			const variant = /^(.+?)\s*-\s*([\p{Lu}][\p{Lu} ]*)[ -](XXXS|XXS|XS|S|M|L|XL|XXL|XXXL|[2-5]XL)$/u.exec(name);
+			const lines = wrap_canvas_text(context, variant ? variant[1] : name, product_width);
+			const code = item.item_code && item.item_code !== name ? item.item_code : "";
+			const detail_count = Number(Boolean(variant)) + Number(Boolean(code)) + Number(flt(item.qty) !== 1);
+			return { item, lines, variant, code, height: Math.max(136, lines.length * line_height + detail_count * 27 + 24) };
 		});
-		const summary_height = 20 + (2 + taxes.length) * 36;
+		const show_summary = taxes.length || flt(doc.discount_amount) || flt(doc.net_total) !== flt(grand_total);
+		const summary_height = show_summary ? 20 + (1 + taxes.length + Number(Boolean(flt(doc.discount_amount)))) * 36 : 0;
 		const total_height = alt_total !== null ? 130 : 104;
 		const height =
 			320 +
 			item_rows.reduce((total, row) => total + row.height, 0) +
 			18 +
 			summary_height +
-			24 +
+			(show_summary ? 24 : 0) +
 			total_height +
 			60;
 		const product_images = await Promise.all(
@@ -358,7 +359,7 @@
 		);
 		y += 42;
 
-		item_rows.forEach(({ item, lines, height: row_height }, index) => {
+		item_rows.forEach(({ item, lines, variant, code, height: row_height }, index) => {
 			draw_product_image(
 				context,
 				product_images[index],
@@ -376,18 +377,32 @@
 
 			context.fillStyle = "#6b7280";
 			context.font = "500 17px Arial, sans-serif";
-			context.fillText(
-				item.item_code || "",
-				padding + image_size + 24,
-				y + lines.length * line_height + 10
-			);
-			context.fillStyle = "#374151";
-			context.font = "600 18px Arial, sans-serif";
-			context.fillText(
-				`${item.qty} ${item.uom || ""} × ${format_currency(item.rate, currency)}`,
-				padding + image_size + 24,
-				y + lines.length * line_height + 40
-			);
+			let detail_y = y + lines.length * line_height + 10;
+			if (variant) {
+				context.fillStyle = "#374151";
+				context.font = "700 19px Arial, sans-serif";
+				context.fillText(`${variant[2].trim()} · ${variant[3]}`, padding + image_size + 24, detail_y - 7, product_width);
+				detail_y += 27;
+			}
+			context.fillStyle = "#6b7280";
+			context.font = "500 17px Arial, sans-serif";
+			if (code) {
+				context.fillText(code, padding + image_size + 24, detail_y, product_width);
+				detail_y += 27;
+			}
+			if (flt(item.qty) !== 1) {
+				const parts = [
+					[700, String(item.qty)],
+					[500, item.uom ? ` ${item.uom} ` : " "],
+					[700, `× ${format_currency(item.rate, currency)}`],
+				];
+				let detail_x = padding + image_size + 24;
+				for (const [weight, text] of parts) {
+					context.font = `${weight} 17px Arial, sans-serif`;
+					context.fillText(text, detail_x, detail_y);
+					detail_x += context.measureText(text).width;
+				}
+			}
 
 			context.fillStyle = "#111827";
 			context.font = "800 25px Arial, sans-serif";
@@ -402,7 +417,7 @@
 		});
 
 		y += 18;
-		draw_rounded_rect(context, padding, y, content_width, summary_height, 18, "#fdf1f2");
+		if (show_summary) draw_rounded_rect(context, padding, y, content_width, summary_height, 18, "#fdf1f2");
 		let summary_y = y + 20;
 		const draw_summary = (label, value) => {
 			context.fillStyle = "#4b5563";
@@ -416,18 +431,17 @@
 			summary_y += 36;
 		};
 
-		draw_summary(
-			"Cantidad total",
-			String(items.reduce((total, item) => total + flt(item.qty), 0))
-		);
-		draw_summary("Subtotal", format_currency(doc.net_total, currency));
+		if (show_summary) draw_summary("Subtotal", format_currency(doc.net_total, currency));
+		if (flt(doc.discount_amount)) {
+			draw_summary("Descuento aplicado", format_currency(doc.discount_amount, currency));
+		}
 		taxes.forEach((tax) =>
 			draw_summary(
 				tax.description || "Cargo",
 				format_currency(tax.tax_amount_after_discount_amount, currency)
 			)
 		);
-		y += summary_height + 24;
+		y += summary_height + (show_summary ? 24 : 0);
 
 		draw_rounded_rect(context, padding, y, content_width, total_height, 20, "#111827");
 		context.fillStyle = "#d1d5db";
@@ -501,13 +515,27 @@
 					)}">`,
 				},
 			],
-			primary_action_label: __("Download"),
-			primary_action: () => {
+			primary_action_label: __("Copy"),
+			primary_action: async () => {
+				try {
+					await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+					frappe.show_alert({ message: __("Image copied"), indicator: "green" });
+				} catch {
+					frappe.msgprint(__("Could not copy the image. Use Download instead."));
+				}
+			},
+			secondary_action_label: __("Download"),
+			secondary_action: () => {
 				download_cart_image(blob, doc);
 				dialog.hide();
 			},
 		});
 
+		dialog.standard_actions.css({
+			display: "flex",
+			width: "100%",
+			justifyContent: "space-between",
+		});
 		dialog.$wrapper.one("hidden.bs.modal", () => URL.revokeObjectURL(url));
 		dialog.show();
 	}
